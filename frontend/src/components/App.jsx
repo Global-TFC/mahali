@@ -235,7 +235,7 @@ function App() {
         <div className="main-content">
           <header>
             <div className="header-content">
-              <h1>🏛️ Mahall Society Management</h1>
+              <h1>🏛️ Mahali Community Management</h1>
             </div>
           </header>
           

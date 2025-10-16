@@ -1,5 +1,8 @@
 @echo off
-echo Installing Mahall Software dependencies...
+echo Installing Mahall Software...
+echo.
+
+echo This script will install the Mahall Software application on your system.
 echo.
 
 echo Installing Python dependencies...
@@ -19,10 +22,12 @@ cd ..
 
 echo Building Electron application...
 cd frontend
-npm run package-app
+npm run build
+electron-builder
 cd ..
 
 echo.
-echo Setup completed!
-echo You can now run the application from the dist-electron folder.
+echo Installation completed!
+echo You can find the installer in the frontend/dist-electron folder.
+echo.
 pause

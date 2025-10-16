@@ -19,31 +19,47 @@ module.exports = async function(context) {
       fs.mkdirSync(backendTarget, { recursive: true });
     }
 
-    // Copy essential backend files
-    const filesToCopy = [
+    // Copy essential backend files and directories
+    const itemsToCopy = [
       'db.sqlite3',
-      'django_server.exe'
+      'django_server.exe',
+      'mahall_backup_restore.exe',
+      'manage.py',
+      'requirements.txt',
+      'mahall_backend',
+      'society',
+      'media',
+      'backup_restore.py'
     ];
 
-    filesToCopy.forEach(file => {
-      const srcPath = path.join(backendSource, file);
-      const destPath = path.join(backendTarget, file);
+    itemsToCopy.forEach(item => {
+      const srcPath = path.join(backendSource, item);
+      const destPath = path.join(backendTarget, item);
 
       if (fs.existsSync(srcPath)) {
-        fs.copyFileSync(srcPath, destPath);
-        console.log(`Copied: ${file}`);
+        if (fs.statSync(srcPath).isDirectory()) {
+          copyDirectoryRecursive(srcPath, destPath);
+          console.log(`Copied directory: ${item}`);
+        } else {
+          fs.copyFileSync(srcPath, destPath);
+          console.log(`Copied file: ${item}`);
+        }
       } else {
-        console.log(`Source file not found: ${srcPath}`);
+        console.log(`Source not found: ${srcPath}`);
       }
     });
 
-    // Check if media directory exists and copy it
-    const mediaSource = path.join(backendSource, 'media');
-    const mediaTarget = path.join(backendTarget, 'media');
+    // Copy React frontend build files to Django staticfiles directory
+    const frontendDistSource = path.join(process.cwd(), 'dist');
+    const staticTarget = path.join(backendTarget, 'staticfiles');
 
-    if (fs.existsSync(mediaSource)) {
-      copyDirectoryRecursive(mediaSource, mediaTarget);
-      console.log('Copied: media directory');
+    console.log(`Copying React frontend build files from ${frontendDistSource} to ${staticTarget}`);
+
+    if (fs.existsSync(frontendDistSource)) {
+      copyDirectoryRecursive(frontendDistSource, staticTarget);
+      console.log('React frontend build files copied successfully!');
+    } else {
+      console.log(`Frontend dist directory not found: ${frontendDistSource}`);
     }
 
     console.log('Backend files copied successfully!');
