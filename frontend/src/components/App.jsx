@@ -30,6 +30,21 @@ function App() {
   const [theme, setTheme] = useState('light') // light, dim, dark
   const [exportProgress, setExportProgress] = useState(null)
   const [importProgress, setImportProgress] = useState(null)
+  
+  // Track which tabs have been loaded
+  const [loadedTabs, setLoadedTabs] = useState(new Set(['dashboard']))
+  
+  // Tab-specific loading states
+  const [tabLoadingStates, setTabLoadingStates] = useState({
+    dashboard: false,
+    areas: false,
+    houses: false,
+    members: false,
+    collections: false,
+    subcollections: false,
+    obligations: false,
+    data: false
+  })
 
   useEffect(() => {
     // Wait a bit to ensure Django server is running
@@ -44,32 +59,12 @@ function App() {
     setLoading(true)
     setError(null)
     try {
-      // Load all data from backend
-      const [
-        membersRes, 
-        housesRes, 
-        areasRes, 
-        collectionsRes,
-        subcollectionsRes,
-        obligationsRes
-      ] = await Promise.all([
-        memberAPI.getAll(),
-        houseAPI.getAll(),
-        areaAPI.getAll(),
-        collectionAPI.getAll(),
-        subcollectionAPI.getAll(),
-        obligationAPI.getAll()
-      ])
-      
-      setMembers(membersRes.data)
-      setHouses(housesRes.data)
+      // Load minimal data for initial dashboard
+      const areasRes = await areaAPI.getAll()
       setAreas(areasRes.data)
-      setCollections(collectionsRes.data)
-      setSubcollections(subcollectionsRes.data)
-      setMemberObligations(obligationsRes.data)
       setRetryCount(0) // Reset retry count on successful load
     } catch (error) {
-      console.error('Failed to load data:', error)
+      console.error('Failed to load initial data:', error)
 
       // Retry with exponential backoff if it's likely a server not ready issue
       if (retryCount < 3) {
@@ -84,6 +79,71 @@ function App() {
     setLoading(false)
   }
 
+  const loadDataForTab = async (tab, force = false) => {
+    // If tab is already loaded and not forced, don't load again
+    if (!force && loadedTabs.has(tab)) return
+    
+    // Set loading state for this specific tab
+    setTabLoadingStates(prev => ({ ...prev, [tab]: true }))
+    
+    try {
+      switch (tab) {
+        case 'areas':
+          const areasData = await areaAPI.getAll()
+          setAreas(areasData.data)
+          break
+        case 'houses':
+          const housesData = await houseAPI.getAll()
+          const areasDataForHouses = await areaAPI.getAll()
+          setHouses(housesData.data)
+          setAreas(areasDataForHouses.data)
+          break
+        case 'members':
+          const membersData = await memberAPI.getAll()
+          setMembers(membersData.data)
+          break
+        case 'collections':
+          const collectionsData = await collectionAPI.getAll()
+          setCollections(collectionsData.data)
+          break
+        case 'subcollections':
+          const subcollectionsData = await subcollectionAPI.getAll()
+          setSubcollections(subcollectionsData.data)
+          break
+        case 'obligations':
+          const obligationsData = await obligationAPI.getAll()
+          const membersDataForObligations = await memberAPI.getAll()
+          setMemberObligations(obligationsData.data)
+          setMembers(membersDataForObligations.data)
+          break
+        default:
+          // Other tabs don't need specific data loading
+          break
+      }
+      
+      // Mark tab as loaded (only if not forced)
+      if (!force) {
+        setLoadedTabs(prev => new Set(prev).add(tab))
+      }
+    } catch (error) {
+      console.error(`Failed to load data for ${tab}:`, error)
+    } finally {
+      setTabLoadingStates(prev => ({ ...prev, [tab]: false }))
+    }
+  }
+
+  // Handle tab change with lazy loading
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    // Load data for the new tab if not already loaded
+    if (tab !== 'dashboard' && tab !== 'data') {
+      loadDataForTab(tab)
+    } else {
+      // Mark dashboard and data tabs as loaded since they don't need data
+      setLoadedTabs(prev => new Set(prev).add(tab))
+    }
+  }
+
   const handleSubmit = async (type) => {
     try {
       if (editing) {
@@ -93,7 +153,7 @@ function App() {
       }
       setFormData({})
       setEditing(null)
-      loadData()
+      loadDataForTab(activeTab, true) // Force reload data for current tab
     } catch (error) {
       console.error(`Failed to ${editing ? 'update' : 'create'} ${type}:`, error)
     }
@@ -136,7 +196,31 @@ function App() {
       events: eventAPI 
     }
     await apis[type].delete(id)
-    loadData()
+    
+    // Reload data for the specific tab that corresponds to the deleted item type
+    switch (type) {
+      case 'areas':
+        loadDataForTab('areas', true) // Force reload
+        break
+      case 'houses':
+        loadDataForTab('houses', true) // Force reload
+        break
+      case 'members':
+        loadDataForTab('members', true) // Force reload
+        break
+      case 'collections':
+        loadDataForTab('collections', true) // Force reload
+        break
+      case 'subcollections':
+        loadDataForTab('subcollections', true) // Force reload
+        break
+      case 'obligations':
+        loadDataForTab('obligations', true) // Force reload
+        break
+      default:
+        // For other types, reload data for current tab
+        loadDataForTab(activeTab, true) // Force reload
+    }
   }
 
   const exportData = async () => {
@@ -192,7 +276,7 @@ function App() {
       
       setImportProgress({ status: 'completed', message: 'Import completed!', progress: 100 })
       setTimeout(() => setImportProgress(null), 3000)
-      loadData()
+      loadDataForTab(activeTab) // Reload data for current tab
     } catch (error) {
       setImportProgress({ status: 'error', message: 'Import failed: ' + error.message })
       setTimeout(() => setImportProgress(null), 5000)
@@ -218,12 +302,15 @@ function App() {
     </div>
   )
 
+  // Show loading indicator for specific tabs
+  const isTabLoading = tabLoadingStates[activeTab]
+
   return (
     <div className={`app theme-${theme}`}>
       <div className="app-layout">
         <Sidebar 
           activeTab={activeTab}
-          setActiveTab={setActiveTab}
+          setActiveTab={handleTabChange}
           theme={theme}
           setTheme={setTheme}
           areasCount={areas.length}
@@ -233,87 +320,86 @@ function App() {
         />
         
         <div className="main-content">
-          <header>
-            <div className="header-content">
-              <h1>🏛️ Mahali Community Management</h1>
-            </div>
-          </header>
+          {/* Removed the header/topbar as requested */}
           
           <main>
-            {activeTab === 'dashboard' && (
-              <Dashboard 
-                membersCount={members.length}
-                housesCount={houses.length}
-                areasCount={areas.length}
-                collectionsCount={collections.length}
-              />
-            )}
-            {activeTab === 'areas' && (
-              <Areas 
-                areas={areas}
-                setEditing={setEditing}
-                deleteItem={deleteItem}
-              />
-            )}
-            {activeTab === 'houses' && (
-              <Houses 
-                houses={houses}
-                areas={areas}
-                setEditing={setEditing}
-                deleteItem={deleteItem}
-              />
-            )}
-            {activeTab === 'members' && (
-              <Members 
-                members={members}
-                setEditing={setEditing}
-                deleteItem={deleteItem}
-              />
-            )}
-            {activeTab === 'collections' && (
-              <Collections 
-                collections={collections}
-                setEditing={setEditing}
-                deleteItem={deleteItem}
-                setSelectedCollection={setSelectedCollection}
-                setActiveTab={setActiveTab}
-              />
-            )}
-            {activeTab === 'subcollections' && (
-              <Subcollections 
-                subcollections={subcollections}
-                selectedCollection={selectedCollection}
-                setEditing={setEditing}
-                deleteItem={deleteItem}
-                setSelectedSubcollection={setSelectedSubcollection}
-                setActiveTab={setActiveTab}
-              />
-            )}
-            {activeTab === 'obligations' && (
-              <Obligations 
-                memberObligations={memberObligations}
-                selectedSubcollection={selectedSubcollection}
-                members={members}
-                setEditing={setEditing}
-                deleteItem={deleteItem}
-              />
-            )}
-            {activeTab === 'data' && (
-              <DataManagement 
-                exportData={exportData}
-                importData={importData}
-                exportProgress={exportProgress}
-                importProgress={importProgress}
-              />
-            )}
-            {editing && (
-              <EditForm
-                editing={editing}
-                setEditing={setEditing}
-                formData={formData}
-                setFormData={setFormData}
-                handleSubmit={handleSubmit}
-              />
+            {isTabLoading ? (
+              <div className="tab-loading">
+                <div className="spinner"></div>
+                <p>Loading {activeTab}...</p>
+              </div>
+            ) : (
+              <>
+                {activeTab === 'dashboard' && <Dashboard />}
+                {activeTab === 'areas' && (
+                  <Areas 
+                    areas={areas}
+                    setEditing={setEditing}
+                    deleteItem={deleteItem}
+                    loadDataForTab={loadDataForTab}
+                  />
+                )}
+                {activeTab === 'houses' && (
+                  <Houses 
+                    houses={houses}
+                    areas={areas}
+                    setEditing={setEditing}
+                    deleteItem={deleteItem}
+                  />
+                )}
+                {activeTab === 'members' && (
+                  <Members 
+                    members={members}
+                    setEditing={setEditing}
+                    deleteItem={deleteItem}
+                  />
+                )}
+                {activeTab === 'collections' && (
+                  <Collections 
+                    collections={collections}
+                    setEditing={setEditing}
+                    deleteItem={deleteItem}
+                    setSelectedCollection={setSelectedCollection}
+                    setActiveTab={setActiveTab}
+                  />
+                )}
+                {activeTab === 'subcollections' && (
+                  <Subcollections 
+                    subcollections={subcollections}
+                    selectedCollection={selectedCollection}
+                    setEditing={setEditing}
+                    deleteItem={deleteItem}
+                    setSelectedSubcollection={setSelectedSubcollection}
+                    setActiveTab={setActiveTab}
+                  />
+                )}
+                {activeTab === 'obligations' && (
+                  <Obligations 
+                    memberObligations={memberObligations}
+                    selectedSubcollection={selectedSubcollection}
+                    members={members}
+                    setEditing={setEditing}
+                    deleteItem={deleteItem}
+                  />
+                )}
+                {activeTab === 'data' && (
+                  <DataManagement 
+                    exportData={exportData}
+                    importData={importData}
+                    exportProgress={exportProgress}
+                    importProgress={importProgress}
+                  />
+                )}
+                {editing && (
+                  <EditForm
+                    editing={editing}
+                    setEditing={setEditing}
+                    formData={formData}
+                    setFormData={setFormData}
+                    handleSubmit={handleSubmit}
+                  />
+                )}
+              </>
             )}
           </main>
         </div>

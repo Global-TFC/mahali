@@ -150,3 +150,42 @@ class MemberObligation(models.Model):  # The through-table for member-subcollect
         if not self.area and self.member.house:
             self.area = self.member.house.area  # Auto-denormalize area from member's house
         super().save(*args, **kwargs)
+
+
+class Todo(models.Model):
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    completed = models.BooleanField(default=False)
+    due_date = models.DateField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.title
+
+
+class AppSettings(models.Model):
+    THEME_CHOICES = [
+        ('light', 'Light'),
+        ('dim', 'Dim'),
+        ('dark', 'Dark'),
+    ]
+    
+    theme = models.CharField(max_length=10, choices=THEME_CHOICES, default='light')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "App Settings"
+        verbose_name_plural = "App Settings"
+    
+    def __str__(self):
+        return f"App Settings (Theme: {self.theme})"

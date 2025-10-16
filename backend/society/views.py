@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from django.http import HttpResponse, Http404
 from django.conf import settings
 from django.core.management import execute_from_command_line
-from .models import Member, Area, House, Collection, SubCollection, MemberObligation
-from .serializers import MemberSerializer, AreaSerializer, HouseSerializer, CollectionSerializer, SubCollectionSerializer, MemberObligationSerializer
+from .models import Member, Area, House, Collection, SubCollection, MemberObligation, Todo, AppSettings
+from .serializers import MemberSerializer, AreaSerializer, HouseSerializer, CollectionSerializer, SubCollectionSerializer, MemberObligationSerializer, TodoSerializer, AppSettingsSerializer
 import os
 import zipfile
 import tempfile
@@ -104,3 +104,58 @@ class MemberObligationViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class TodoViewSet(viewsets.ModelViewSet):
+    queryset = Todo.objects.all()
+    serializer_class = TodoSerializer
+
+class AppSettingsViewSet(viewsets.ModelViewSet):
+    queryset = AppSettings.objects.all()
+    serializer_class = AppSettingsSerializer
+    
+    def get_queryset(self):
+        # Return all settings (no filtering)
+        return AppSettings.objects.all()
+    
+    def list(self, request, *args, **kwargs):
+        # Return only the latest settings
+        queryset = AppSettings.objects.all().order_by('-updated_at')
+        if queryset.exists():
+            serializer = self.get_serializer(queryset.first())
+            return Response([serializer.data])
+        else:
+            # Return empty array if no settings exist
+            return Response([])
+
+class DashboardViewSet(viewsets.ViewSet):
+    """
+    Dashboard API to provide statistics and status information
+    """
+    
+    def list(self, request):
+        """Return dashboard statistics"""
+        # Get counts for each model
+        stats = {
+            'areas_count': Area.objects.count(),
+            'houses_count': House.objects.count(),
+            'members_count': Member.objects.count(),
+            'collections_count': Collection.objects.count(),
+            'subcollections_count': SubCollection.objects.count(),
+            'obligations_count': MemberObligation.objects.count(),
+            'todos_count': Todo.objects.count(),
+            'completed_todos_count': Todo.objects.filter(completed=True).count(),
+            'pending_todos_count': Todo.objects.filter(completed=False).count(),
+            'members_by_status': {
+                'live': Member.objects.filter(status='live').count(),
+                'dead': Member.objects.filter(status='dead').count(),
+                'terminated': Member.objects.filter(status='terminated').count(),
+            },
+            'obligations_by_status': {
+                'pending': MemberObligation.objects.filter(paid_status='pending').count(),
+                'paid': MemberObligation.objects.filter(paid_status='paid').count(),
+                'overdue': MemberObligation.objects.filter(paid_status='overdue').count(),
+                'partial': MemberObligation.objects.filter(paid_status='partial').count(),
+            }
+        }
+        
+        return Response(stats)

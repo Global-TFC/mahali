@@ -1,4 +1,16 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
+import { 
+  FaHome, 
+  FaMapMarkerAlt, 
+  FaHouseUser, 
+  FaUsers, 
+  FaFolder, 
+  FaDatabase, 
+  FaSun, 
+  FaMoon, 
+  FaAdjust 
+} from 'react-icons/fa';
+import { settingsAPI } from '../api';
 
 const Sidebar = ({ 
   activeTab, 
@@ -10,10 +22,62 @@ const Sidebar = ({
   membersCount, 
   collectionsCount 
 }) => {
+  const [appSettings, setAppSettings] = useState(null);
+
+  useEffect(() => {
+    loadAppSettings();
+  }, []);
+
+  const loadAppSettings = async () => {
+    try {
+      const response = await settingsAPI.getAll();
+      if (response.data.length > 0) {
+        const settings = response.data[0];
+        setAppSettings(settings);
+        setTheme(settings.theme); // This should update the parent component's state
+      } else {
+        // If no settings exist, create default settings
+        const response = await settingsAPI.create({ theme: 'light' });
+        setAppSettings(response.data);
+        setTheme('light');
+      }
+    } catch (error) {
+      console.error('Failed to load app settings:', error);
+      // Set default theme if loading fails
+      setTheme('light');
+    }
+  };
+
+  const saveThemeSetting = async (newTheme) => {
+    try {
+      let updatedSettings;
+      if (appSettings) {
+        // Update existing settings
+        const response = await settingsAPI.update(appSettings.id, { theme: newTheme });
+        updatedSettings = response.data;
+      } else {
+        // Create new settings
+        const response = await settingsAPI.create({ theme: newTheme });
+        updatedSettings = response.data;
+      }
+      setAppSettings(updatedSettings);
+      setTheme(newTheme); // Update parent component's state
+    } catch (error) {
+      console.error('Failed to save theme setting:', error);
+    }
+  };
+
+  const handleThemeChange = (newTheme) => {
+    saveThemeSetting(newTheme);
+  };
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <h2>🏛️ Mahall</h2>
+        <div className="logo-container">
+          <img src="/logo.png" alt="Mahali Logo" className="logo-icon" />
+          <h2>Mahali</h2>
+        </div>
       </div>
       
       <nav className="sidebar-nav">
@@ -21,37 +85,43 @@ const Sidebar = ({
           className={activeTab === 'dashboard' ? 'active' : ''}
           onClick={() => setActiveTab('dashboard')}
         >
-          📊 Dashboard
+          <FaHome className="tab-icon" />
+          <span>Dashboard</span>
         </button>
         <button 
           className={activeTab === 'areas' ? 'active' : ''}
           onClick={() => setActiveTab('areas')}
         >
-          📍 Areas ({areasCount})
+          <FaMapMarkerAlt className="tab-icon" />
+          <span>Areas ({areasCount})</span>
         </button>
         <button 
           className={activeTab === 'houses' ? 'active' : ''}
           onClick={() => setActiveTab('houses')}
         >
-          🏘️ Houses ({housesCount})
+          <FaHouseUser className="tab-icon" />
+          <span>Houses ({housesCount})</span>
         </button>
         <button 
           className={activeTab === 'members' ? 'active' : ''}
           onClick={() => setActiveTab('members')}
         >
-          👥 Members ({membersCount})
+          <FaUsers className="tab-icon" />
+          <span>Members ({membersCount})</span>
         </button>
         <button 
           className={activeTab === 'collections' ? 'active' : ''}
           onClick={() => setActiveTab('collections')}
         >
-          📂 Collections ({collectionsCount})
+          <FaFolder className="tab-icon" />
+          <span>Collections ({collectionsCount})</span>
         </button>
         <button 
           className={activeTab === 'data' ? 'active' : ''}
           onClick={() => setActiveTab('data')}
         >
-          💾 Data Management
+          <FaDatabase className="tab-icon" />
+          <span>Data Management</span>
         </button>
       </nav>
       
@@ -59,26 +129,29 @@ const Sidebar = ({
         <div className="theme-selector">
           <button 
             className={theme === 'light' ? 'active' : ''}
-            onClick={() => setTheme('light')}
+            onClick={() => handleThemeChange('light')}
+            title="Light Theme"
           >
-            ☀️
+            <FaSun />
           </button>
           <button 
             className={theme === 'dim' ? 'active' : ''}
-            onClick={() => setTheme('dim')}
+            onClick={() => handleThemeChange('dim')}
+            title="Dim Theme"
           >
-            🌗
+            <FaAdjust />
           </button>
           <button 
             className={theme === 'dark' ? 'active' : ''}
-            onClick={() => setTheme('dark')}
+            onClick={() => handleThemeChange('dark')}
+            title="Dark Theme"
           >
-            🌙
+            <FaMoon />
           </button>
         </div>
       </div>
     </aside>
-  )
-}
+  );
+};
 
-export default Sidebar
+export default Sidebar;
