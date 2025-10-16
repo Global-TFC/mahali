@@ -44,6 +44,12 @@ export const obligationAPI = {
   create: (data) => api.post('/obligations/', data),
   update: (id, data) => api.put(`/obligations/${id}/`, data),
   delete: (id) => api.delete(`/obligations/${id}/`),
+  exportData: () => api.post('/obligations/export_data/', {}, {
+    responseType: 'blob',
+  }),
+  importData: (formData) => api.post('/obligations/import_data/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
 };
 
 export const eventAPI = {
@@ -51,12 +57,6 @@ export const eventAPI = {
   create: (data) => api.post('/events/', data),
   update: (id, data) => api.put(`/events/${id}/`, data),
   delete: (id) => api.delete(`/events/${id}/`),
-  exportData: () => api.post('/events/export_data/', {}, {
-    responseType: 'blob',
-  }),
-  importData: (formData) => api.post('/events/import_data/', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
 };
 
 export const dashboardAPI = {

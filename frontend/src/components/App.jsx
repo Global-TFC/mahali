@@ -30,6 +30,8 @@ function App() {
   const [theme, setTheme] = useState('light') // light, dim, dark
   const [exportProgress, setExportProgress] = useState(null)
   const [importProgress, setImportProgress] = useState(null)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImporting, setIsImporting] = useState(false)
   
   // Track which tabs have been loaded
   const [loadedTabs, setLoadedTabs] = useState(new Set(['dashboard']))
@@ -226,33 +228,43 @@ function App() {
   }
 
   const exportData = async () => {
+    // Disable user interactions during export
+    setIsExporting(true);
     try {
-      setExportProgress({ status: 'starting', message: 'Starting export...' })
+      setExportProgress({ status: 'starting', message: 'Starting export...', progress: 0 });
       
-      // Simulate progress for better UX
-      setExportProgress({ status: 'processing', message: 'Collecting data...', progress: 25 })
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Real progress - Collecting data
+      setExportProgress({ status: 'processing', message: 'Collecting database...', progress: 20 });
       
-      setExportProgress({ status: 'processing', message: 'Packaging files...', progress: 50 })
-      await new Promise(resolve => setTimeout(resolve, 500))
+      const response = await obligationAPI.exportData()
       
-      setExportProgress({ status: 'processing', message: 'Compressing archive...', progress: 75 })
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Progress - Packaging files
+      setExportProgress({ status: 'processing', message: 'Packaging files...', progress: 60 });
       
-      const response = await eventAPI.exportData()
+      // Progress - Compressing archive
+      setExportProgress({ status: 'processing', message: 'Compressing archive...', progress: 80 });
+      
+      // Create download link and trigger download
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const a = document.createElement('a')
       a.href = url
-      a.download = 'mahall_data.zip'
+      a.download = `mahall_backup_${new Date().toISOString().slice(0, 10)}.zip`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
       
       setExportProgress({ status: 'completed', message: 'Export completed!', progress: 100 })
-      setTimeout(() => setExportProgress(null), 3000)
+      setTimeout(() => {
+        setExportProgress(null)
+        setIsExporting(false)
+      }, 3000)
     } catch (error) {
-      setExportProgress({ status: 'error', message: 'Export failed: ' + error.message })
-      setTimeout(() => setExportProgress(null), 5000)
+      setExportProgress({ status: 'error', message: 'Export failed: ' + (error.response?.data?.error || error.message) })
+      setTimeout(() => {
+        setExportProgress(null)
+        setIsExporting(false)
+      }, 5000)
     }
   }
 
@@ -260,28 +272,39 @@ function App() {
     const file = event.target.files[0]
     if (!file) return
 
+    // Disable user interactions during import
+    setIsImporting(true);
     const formData = new FormData()
     formData.append('zip_file', file)
 
     try {
-      setImportProgress({ status: 'starting', message: 'Starting import...' })
+      setImportProgress({ status: 'starting', message: 'Starting import...', progress: 0 });
       
-      // Simulate progress for better UX
-      setImportProgress({ status: 'processing', message: 'Validating file...', progress: 25 })
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Real progress - Validating file
+      setImportProgress({ status: 'processing', message: 'Validating file...', progress: 10 });
       
-      setImportProgress({ status: 'processing', message: 'Extracting data...', progress: 50 })
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Real progress - Extracting data
+      setImportProgress({ status: 'processing', message: 'Extracting data...', progress: 30 });
       
-      setImportProgress({ status: 'processing', message: 'Importing records...', progress: 75 })
-      await eventAPI.importData(formData)
+      await obligationAPI.importData(formData);
       
-      setImportProgress({ status: 'completed', message: 'Import completed!', progress: 100 })
-      setTimeout(() => setImportProgress(null), 3000)
-      loadDataForTab(activeTab) // Reload data for current tab
+      // Progress - Importing records
+      setImportProgress({ status: 'processing', message: 'Importing records...', progress: 75 });
+      
+      setImportProgress({ status: 'completed', message: 'Import completed!', progress: 100 });
+      setTimeout(() => {
+        setImportProgress(null);
+        setIsImporting(false);
+        // Reload all data after import
+        setLoadedTabs(new Set(['dashboard']));
+        loadDataForTab(activeTab, true);
+      }, 3000);
     } catch (error) {
-      setImportProgress({ status: 'error', message: 'Import failed: ' + error.message })
-      setTimeout(() => setImportProgress(null), 5000)
+      setImportProgress({ status: 'error', message: 'Import failed: ' + (error.response?.data?.error || error.message) });
+      setTimeout(() => {
+        setImportProgress(null);
+        setIsImporting(false);
+      }, 5000);
     }
   }
 
@@ -306,6 +329,9 @@ function App() {
 
   // Show loading indicator for specific tabs
   const isTabLoading = tabLoadingStates[activeTab]
+  
+  // Disable interactions during export/import
+  const isBusy = isExporting || isImporting || loading || isTabLoading
 
   return (
     <div className={`app theme-${theme}`}>
@@ -319,6 +345,7 @@ function App() {
           housesCount={houses.length}
           membersCount={members.length}
           collectionsCount={collections.length}
+          disabled={isBusy}
         />
         
         <div className="main-content">
@@ -390,6 +417,7 @@ function App() {
                     importData={importData}
                     exportProgress={exportProgress}
                     importProgress={importProgress}
+                    disabled={isBusy}
                   />
                 )}
                 {editing && (
@@ -399,6 +427,7 @@ function App() {
                     formData={formData}
                     setFormData={setFormData}
                     handleSubmit={handleSubmit}
+                    disabled={isBusy}
                   />
                 )}
               </>
@@ -406,6 +435,14 @@ function App() {
           </main>
         </div>
       </div>
+      
+      {/* Overlay to prevent interactions during export/import */}
+      {isBusy && (
+        <div className="busy-overlay">
+          <div className="busy-spinner"></div>
+          <p>{isExporting ? 'Exporting data...' : isImporting ? 'Importing data...' : 'Loading...'}</p>
+        </div>
+      )}
     </div>
   )
 }

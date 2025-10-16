@@ -63,27 +63,40 @@ The project uses a multi-stage build process:
    cd frontend
    npm run build
    ```
+   This compiles the React application into static files in the `frontend/dist/` directory.
 
 2. **Build the Django backend executable:**
    ```
    cd backend
    python build_django_exe.py
    ```
-   This creates `django_server.exe` and `mahall_backup_restore.exe` in the `backend/dist/` directory.
+   This creates `django_server.exe` and `mahall_backup_restore.exe` in the `backend/dist/` directory using PyInstaller.
 
 3. **Package the Electron app:**
    ```
    cd frontend
    npm run build-electron
    ```
-   This creates the installer in `frontend/dist-electron/` directory.
+   This packages the Electron application and creates the installer in `frontend/dist-electron/` directory.
 
 4. **Alternative: Build everything at once:**
    ```
    cd frontend
    npm run package-app
    ```
-   This runs all the above steps in sequence.
+   This runs all the above steps in sequence:
+   - `npm run build` (frontend build)
+   - `cd ../backend && python build_django_exe.py` (backend build)
+   - `electron-builder` (Electron packaging)
+
+### Build Commands Summary
+
+| Command | Description | Output Location |
+|---------|-------------|-----------------|
+| `npm run build` | Build React frontend | `frontend/dist/` |
+| `python build_django_exe.py` | Build Django executable | `backend/dist/` |
+| `npm run build-electron` | Package Electron app | `frontend/dist-electron/` |
+| `npm run package-app` | Build everything | `frontend/dist-electron/` |
 
 ### Installation Script
 

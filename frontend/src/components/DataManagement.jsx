@@ -1,6 +1,14 @@
 import React from 'react'
 
-const DataManagement = ({ exportData, importData, exportProgress, importProgress }) => {
+const DataManagement = ({ exportData, importData, exportProgress, importProgress, disabled }) => {
+  // Function to render success effect
+  const renderSuccessEffect = (isImport = false) => (
+    <div className="success-effect">
+      <div className="success-icon">✓</div>
+      <div className="success-message">{isImport ? 'Import Successful!' : 'Export Successful!'}</div>
+    </div>
+  );
+
   return (
     <div className="data-section">
       <h2>💾 Data Management</h2>
@@ -8,22 +16,34 @@ const DataManagement = ({ exportData, importData, exportProgress, importProgress
         <div className="data-action-card">
           <h3>📤 Export Data</h3>
           <p>Export all data to a ZIP file for backup or transfer.</p>
-          <button onClick={exportData} className="export-btn">Export Now</button>
+          <button 
+            onClick={exportData} 
+            className="export-btn"
+            disabled={disabled}
+          >
+            {disabled ? 'Processing...' : 'Export Now'}
+          </button>
           
           {/* Export Progress */}
           {exportProgress && (
             <div className={`progress-container ${exportProgress.status}`}>
-              <div className="progress-header">
-                <span>{exportProgress.message}</span>
-                {exportProgress.progress && <span>{exportProgress.progress}%</span>}
-              </div>
-              {exportProgress.progress && (
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill" 
-                    style={{width: `${exportProgress.progress}%`}}
-                  ></div>
-                </div>
+              {exportProgress.status === 'completed' ? (
+                renderSuccessEffect(false)
+              ) : (
+                <>
+                  <div className="progress-header">
+                    <span>{exportProgress.message}</span>
+                    {exportProgress.progress && <span>{exportProgress.progress}%</span>}
+                  </div>
+                  {exportProgress.progress && (
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill" 
+                        style={{width: `${exportProgress.progress}%`}}
+                      ></div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -32,25 +52,36 @@ const DataManagement = ({ exportData, importData, exportProgress, importProgress
         <div className="data-action-card">
           <h3>📥 Import Data</h3>
           <p>Import data from a previously exported ZIP file.</p>
-          <label className="import-btn">
-            Select File
-            <input type="file" accept=".zip" onChange={importData} />
+          <label className={`import-btn ${disabled ? 'disabled' : ''}`}>
+            {disabled ? 'Processing...' : 'Select File'}
+            <input 
+              type="file" 
+              accept=".zip" 
+              onChange={importData} 
+              disabled={disabled}
+            />
           </label>
           
           {/* Import Progress */}
           {importProgress && (
             <div className={`progress-container ${importProgress.status}`}>
-              <div className="progress-header">
-                <span>{importProgress.message}</span>
-                {importProgress.progress && <span>{importProgress.progress}%</span>}
-              </div>
-              {importProgress.progress && (
-                <div className="progress-bar">
-                  <div 
-                    className="progress-fill" 
-                    style={{width: `${importProgress.progress}%`}}
-                  ></div>
-                </div>
+              {importProgress.status === 'completed' ? (
+                renderSuccessEffect(true)
+              ) : (
+                <>
+                  <div className="progress-header">
+                    <span>{importProgress.message}</span>
+                    {importProgress.progress && <span>{importProgress.progress}%</span>}
+                  </div>
+                  {importProgress.progress && (
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill" 
+                        style={{width: `${importProgress.progress}%`}}
+                      ></div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

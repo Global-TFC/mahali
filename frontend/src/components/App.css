@@ -36,20 +36,30 @@
 /* Fixed Sidebar */
 .sidebar {
   width: 280px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-right: 1px solid rgba(0, 0, 0, 0.1);
   padding: 20px 15px;
   display: flex;
   flex-direction: column;
-  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.15);
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  z-index: 100;
+  z-index: 1000;
   position: fixed;
   height: 100vh;
   overflow-y: auto;
   box-sizing: border-box;
+}
+
+.app.theme-dim .sidebar {
+  background: rgba(42, 46, 53, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app.theme-dark .sidebar {
+  background: rgba(18, 24, 38, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-header {
@@ -71,11 +81,29 @@
   padding: 5px;
 }
 
+.tab-icon {
+  font-size: 18px;
+  min-width: 18px;
+}
+
+.theme-icon {
+  font-size: 20px;
+  min-width: 20px;
+}
+
 .sidebar-header h2 {
   margin: 0;
   color: #2c3e50;
   font-size: 1.8em;
   text-align: left;
+}
+
+.app.theme-dim .sidebar-header h2 {
+  color: #ecf0f1;
+}
+
+.app.theme-dark .sidebar-header h2 {
+  color: #ecf0f1;
 }
 
 .sidebar-nav {
@@ -113,6 +141,25 @@
   box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
 }
 
+/* Theme-specific styles */
+.app.theme-dim .sidebar-nav button {
+  background: rgba(52, 152, 219, 0.15);
+  color: #ecf0f1;
+}
+
+.app.theme-dark .sidebar-nav button {
+  background: rgba(52, 152, 219, 0.15);
+  color: #ecf0f1;
+}
+
+.app.theme-dim .sidebar-nav button:hover {
+  background: rgba(52, 152, 219, 0.25);
+}
+
+.app.theme-dark .sidebar-nav button:hover {
+  background: rgba(52, 152, 219, 0.25);
+}
+
 /* Dark theme active tab */
 .app.theme-dark .sidebar-nav button.active {
   background: linear-gradient(135deg, #3498db 0%, #1a5276 100%);
@@ -131,236 +178,241 @@
 
 .data-management-content {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
   margin-top: 20px;
 }
 
 .data-action-card {
-  background: rgba(52, 152, 219, 0.1);
-  border-radius: 10px;
-  padding: 20px;
-  border: 1px solid rgba(52, 152, 219, 0.2);
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.theme-dim .data-action-card {
+  background: #2d2d2d;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.theme-dark .data-action-card {
+  background: #1a1a1a;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
 }
 
 .data-action-card h3 {
   margin-top: 0;
-  color: #2c3e50;
-}
-
-.data-action-card p {
-  color: #7f8c8d;
-  margin-bottom: 20px;
-}
-
-.sidebar-section h3 {
-  margin: 0 0 12px 0;
-  color: #2c3e50;
-  font-size: 1.1em;
-}
-
-.data-tabs {
-  display: flex;
-  gap: 5px;
-  margin-bottom: 15px;
-}
-
-.data-tabs button {
-  flex: 1;
-  padding: 8px;
-  border-radius: 6px;
-  border: none;
-  background: rgba(52, 152, 219, 0.1);
-  color: #2c3e50;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 13px;
-}
-
-.data-tabs button:hover {
-  background: rgba(52, 152, 219, 0.2);
-}
-
-.data-tabs button.active {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  color: white;
-}
-
-/* Sidebar Footer */
-.sidebar-footer {
-  margin-top: auto;
-  padding-top: 15px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.theme-selector {
-  display: flex;
-  gap: 5px;
-}
-
-.theme-selector button {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  background: rgba(52, 152, 219, 0.1);
-  color: #2c3e50;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 16px;
+  color: #333;
   display: flex;
   align-items: center;
-  justify-content: center;
-}
-
-.theme-selector button:hover {
-  background: rgba(52, 152, 219, 0.2);
-}
-
-.theme-selector button.active {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  color: white;
-  box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
-}
-
-.view-btn {
-  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%) !important;
-  margin-right: 8px;
-  box-shadow: 0 4px 10px rgba(155, 89, 182, 0.3) !important;
-}
-
-.view-btn:hover {
-  background: linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%) !important;
-  box-shadow: 0 6px 15px rgba(155, 89, 182, 0.4) !important;
-}
-
-/* Theme-specific styles for dim and dark modes */
-.app.theme-dim .sidebar {
-  background: rgba(42, 46, 53, 0.95);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.app.theme-dark .sidebar {
-  background: rgba(18, 24, 38, 0.95);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.app.theme-dim .sidebar-header h2,
-.app.theme-dark .sidebar-header h2,
-.app.theme-dim .sidebar-section h3,
-.app.theme-dark .sidebar-section h3,
-.app.theme-dim .theme-selector label,
-.app.theme-dark .theme-selector label {
-  color: #ecf0f1;
-}
-
-.app.theme-dim .sidebar-nav button,
-.app.theme-dark .sidebar-nav button {
-  background: rgba(52, 152, 219, 0.2);
-  color: #ecf0f1;
-}
-
-.app.theme-dim .sidebar-nav button:hover,
-.app.theme-dark .sidebar-nav button:hover {
-  background: rgba(52, 152, 219, 0.3);
-}
-
-.app.theme-dim .theme-selector button,
-.app.theme-dark .theme-selector button {
-  background: rgba(52, 152, 219, 0.2);
-  color: #ecf0f1;
-}
-
-.app.theme-dim .theme-selector button:hover,
-.app.theme-dark .theme-selector button:hover {
-  background: rgba(52, 152, 219, 0.3);
-}
-
-.app.theme-dim .theme-selector button.active,
-.app.theme-dark .theme-selector button.active {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  color: white;
-}
-
-.app.theme-dim .data-tabs button,
-.app.theme-dark .data-tabs button {
-  background: rgba(52, 152, 219, 0.2);
-  color: #ecf0f1;
-}
-
-.app.theme-dim .data-tabs button:hover,
-.app.theme-dark .data-tabs button:hover {
-  background: rgba(52, 152, 219, 0.3);
-}
-
-.app.theme-dim .data-tabs button.active,
-.app.theme-dark .data-tabs button.active {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  color: white;
-}
-
-.data-actions {
-  display: flex;
-  flex-direction: column;
   gap: 10px;
 }
 
-.sidebar-btn {
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+.theme-dim .data-action-card h3 {
+  color: #e0e0e0;
 }
 
-/* Progress Containers */
+.theme-dark .data-action-card h3 {
+  color: #f0f0f0;
+}
+
+.data-action-card p {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.theme-dim .data-action-card p {
+  color: #a0a0a0;
+}
+
+.theme-dark .data-action-card p {
+  color: #b0b0b0;
+}
+
+.export-btn, .import-btn {
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: inline-block;
+  text-align: center;
+}
+
+.export-btn:hover, .import-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.export-btn:disabled, .import-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.import-btn {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.import-btn input[type="file"] {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
 .progress-container {
-  margin-top: 15px;
+  margin-top: 20px;
   padding: 15px;
-  border-radius: 8px;
-  background: rgba(52, 152, 219, 0.1);
-  border: 1px solid rgba(52, 152, 219, 0.2);
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.theme-dim .progress-container {
+  background-color: #3a3a3a;
+}
+
+.theme-dark .progress-container {
+  background-color: #2a2a2a;
+}
+
+.progress-container.starting {
+  border-left: 4px solid #007bff;
 }
 
 .progress-container.processing {
-  background: rgba(52, 152, 219, 0.1);
-  border-color: rgba(52, 152, 219, 0.3);
+  border-left: 4px solid #ffc107;
 }
 
 .progress-container.completed {
-  background: rgba(46, 204, 113, 0.1);
-  border-color: rgba(46, 204, 113, 0.3);
+  border-left: 4px solid #28a745;
 }
 
 .progress-container.error {
-  background: rgba(231, 76, 60, 0.1);
-  border-color: rgba(231, 76, 60, 0.3);
+  border-left: 4px solid #dc3545;
+}
+
+.success-effect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.success-icon {
+  font-size: 48px;
+  color: #28a745;
+  margin-bottom: 10px;
+  animation: scaleIn 0.3s ease-out;
+}
+
+.success-message {
+  font-size: 18px;
+  font-weight: 600;
+  color: #155724;
+  text-align: center;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Theme-specific styles for success effect */
+.app.theme-dim .success-icon,
+.app.theme-dark .success-icon {
+  color: #2ecc71;
+}
+
+.app.theme-dim .success-message,
+.app.theme-dark .success-message {
+  color: #d4edda;
 }
 
 .progress-header {
   display: flex;
   justify-content: space-between;
   margin-bottom: 10px;
-  font-size: 14px;
   font-weight: 500;
 }
 
 .progress-bar {
   width: 100%;
-  height: 8px;
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
+  height: 10px;
+  background-color: #e9ecef;
+  border-radius: 5px;
   overflow: hidden;
+}
+
+.theme-dim .progress-bar {
+  background-color: #444;
+}
+
+.theme-dark .progress-bar {
+  background-color: #333;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #3498db, #2ecc71);
-  border-radius: 4px;
+  background: linear-gradient(90deg, #6a11cb, #2575fc);
+  border-radius: 5px;
   transition: width 0.3s ease;
+}
+
+/* Busy overlay */
+.busy-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  color: white;
+}
+
+.busy-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Disabled states */
+button:disabled,
+input:disabled,
+label.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Main Content */
@@ -1762,4 +1814,81 @@ input, textarea, select {
 .modal-content button:disabled:hover {
   transform: none;
   box-shadow: none;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.app.theme-dim .sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.app.theme-dark .sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Theme Selector */
+.theme-selector {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding: 10px;
+}
+
+.theme-selector button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: rgba(52, 152, 219, 0.1);
+  color: #2c3e50;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.theme-selector button:hover {
+  background: rgba(52, 152, 219, 0.2);
+  transform: scale(1.1);
+}
+
+.theme-selector button.active {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border-color: #3498db;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.4);
+}
+
+/* Theme-specific styles for theme selector */
+.app.theme-dim .theme-selector button {
+  background: rgba(52, 152, 219, 0.15);
+  color: #ecf0f1;
+}
+
+.app.theme-dark .theme-selector button {
+  background: rgba(52, 152, 219, 0.15);
+  color: #ecf0f1;
+}
+
+.app.theme-dim .theme-selector button:hover {
+  background: rgba(52, 152, 219, 0.25);
+}
+
+.app.theme-dark .theme-selector button:hover {
+  background: rgba(52, 152, 219, 0.25);
+}
+
+.app.theme-dim .theme-selector button.active {
+  background: linear-gradient(135deg, #3498db 0%, #1a5276 100%);
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.5);
+}
+
+.app.theme-dark .theme-selector button.active {
+  background: linear-gradient(135deg, #3498db 0%, #1a5276 100%);
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.5);
 }

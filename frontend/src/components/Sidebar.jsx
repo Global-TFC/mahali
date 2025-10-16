@@ -20,7 +20,8 @@ const Sidebar = ({
   areasCount, 
   housesCount, 
   membersCount, 
-  collectionsCount 
+  collectionsCount,
+  disabled
 }) => {
   const [appSettings, setAppSettings] = useState(null);
 
@@ -84,6 +85,7 @@ const Sidebar = ({
         <button 
           className={activeTab === 'dashboard' ? 'active' : ''}
           onClick={() => setActiveTab('dashboard')}
+          disabled={disabled}
         >
           <FaHome className="tab-icon" />
           <span>Dashboard</span>
@@ -91,34 +93,39 @@ const Sidebar = ({
         <button 
           className={activeTab === 'areas' ? 'active' : ''}
           onClick={() => setActiveTab('areas')}
+          disabled={disabled}
         >
           <FaMapMarkerAlt className="tab-icon" />
-          <span>Areas ({areasCount})</span>
+          <span>Areas</span>
         </button>
         <button 
           className={activeTab === 'houses' ? 'active' : ''}
           onClick={() => setActiveTab('houses')}
+          disabled={disabled}
         >
           <FaHouseUser className="tab-icon" />
-          <span>Houses ({housesCount})</span>
+          <span>Houses</span>
         </button>
         <button 
           className={activeTab === 'members' ? 'active' : ''}
           onClick={() => setActiveTab('members')}
+          disabled={disabled}
         >
           <FaUsers className="tab-icon" />
-          <span>Members ({membersCount})</span>
+          <span>Members</span>
         </button>
         <button 
           className={activeTab === 'collections' ? 'active' : ''}
           onClick={() => setActiveTab('collections')}
+          disabled={disabled}
         >
           <FaFolder className="tab-icon" />
-          <span>Collections ({collectionsCount})</span>
+          <span>Collections</span>
         </button>
         <button 
           className={activeTab === 'data' ? 'active' : ''}
           onClick={() => setActiveTab('data')}
+          disabled={disabled}
         >
           <FaDatabase className="tab-icon" />
           <span>Data Management</span>
@@ -131,22 +138,25 @@ const Sidebar = ({
             className={theme === 'light' ? 'active' : ''}
             onClick={() => handleThemeChange('light')}
             title="Light Theme"
+            disabled={disabled}
           >
-            <FaSun />
+            <FaSun className="theme-icon" />
           </button>
           <button 
             className={theme === 'dim' ? 'active' : ''}
             onClick={() => handleThemeChange('dim')}
             title="Dim Theme"
+            disabled={disabled}
           >
-            <FaAdjust />
+            <FaAdjust className="theme-icon" />
           </button>
           <button 
             className={theme === 'dark' ? 'active' : ''}
             onClick={() => handleThemeChange('dark')}
             title="Dark Theme"
+            disabled={disabled}
           >
-            <FaMoon />
+            <FaMoon className="theme-icon" />
           </button>
         </div>
       </div>
