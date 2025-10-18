@@ -1,13 +1,22 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { FaUser, FaEdit, FaTrash, FaEye } from 'react-icons/fa'
 import MemberModal from './MemberModal'
 import DeleteConfirmModal from './DeleteConfirmModal'
 
 const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [currentMember, setCurrentMember] = useState(null)
   const [memberToDelete, setMemberToDelete] = useState(null)
+
+  // Load members data when component mounts
+  useEffect(() => {
+    if (loadDataForTab) {
+      loadDataForTab('members', false); // Load only once, not forced
+    }
+  }, [loadDataForTab]);
 
   const handleAddMember = () => {
     setCurrentMember(null)
@@ -25,8 +34,8 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
   }
 
   const handleViewMember = (member) => {
-    // Set the member to view and trigger navigation to member details
-    window.dispatchEvent(new CustomEvent('viewMember', { detail: member }));
+    // Navigate to member details page
+    navigate(`/members/${member.member_id}`);
   }
 
   const confirmDelete = async () => {
@@ -36,14 +45,14 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
       setMemberToDelete(null)
       // Reload member data after deletion
       if (loadDataForTab) {
-        loadDataForTab('members', true) // Force reload
+        loadDataForTab('members', true) // Force reload only after deletion
       }
     }
   }
 
   const handleReloadData = () => {
     if (loadDataForTab) {
-      loadDataForTab('members', true) // Force reload
+      loadDataForTab('members', true) // Force reload when user clicks reload
     }
   }
 

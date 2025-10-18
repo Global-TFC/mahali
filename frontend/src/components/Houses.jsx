@@ -1,14 +1,22 @@
-import React, { useState } from 'react'
-import { FaHome, FaRedo, FaPlus, FaEdit, FaTrash, FaEye } from 'react-icons/fa'
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { FaHome, FaEdit, FaTrash } from 'react-icons/fa'
 import HouseModal from './HouseModal'
 import DeleteConfirmModal from './DeleteConfirmModal'
 
-const Houses = ({ houses, areas, setEditing, deleteItem, loadDataForTab, onViewHouse }) => {
+const Houses = ({ houses, areas, setEditing, deleteItem, loadDataForTab }) => {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [currentHouse, setCurrentHouse] = useState(null)
   const [houseToDelete, setHouseToDelete] = useState(null)
-  const [houseToView, setHouseToView] = useState(null)
+
+  // Load houses data when component mounts
+  useEffect(() => {
+    if (loadDataForTab) {
+      loadDataForTab('houses', false); // Load only once, not forced
+    }
+  }, [loadDataForTab]);
 
   const handleAddHouse = () => {
     setCurrentHouse(null)
@@ -26,9 +34,8 @@ const Houses = ({ houses, areas, setEditing, deleteItem, loadDataForTab, onViewH
   }
 
   const handleViewHouse = (house) => {
-    if (onViewHouse) {
-      onViewHouse(house);
-    }
+    // Navigate to house details page
+    navigate(`/houses/${house.home_id}`);
   }
 
   const confirmDelete = async () => {
@@ -38,8 +45,14 @@ const Houses = ({ houses, areas, setEditing, deleteItem, loadDataForTab, onViewH
       setHouseToDelete(null)
       // Reload house data after deletion
       if (loadDataForTab) {
-        loadDataForTab('houses', true) // Force reload
+        loadDataForTab('houses', true) // Force reload only after deletion
       }
+    }
+  }
+
+  const handleReloadData = () => {
+    if (loadDataForTab) {
+      loadDataForTab('houses', true) // Force reload when user clicks reload
     }
   }
 
@@ -53,23 +66,13 @@ const Houses = ({ houses, areas, setEditing, deleteItem, loadDataForTab, onViewH
     setHouseToDelete(null)
   }
 
-  const handleReloadData = () => {
-    if (loadDataForTab) {
-      loadDataForTab('houses', true) // Force reload
-    }
-  }
-
   return (
     <div className="data-section">
       <div className="section-header">
         <h2><FaHome /> Houses</h2>
         <div className="header-actions">
-          <button onClick={handleReloadData} className="reload-btn" title="Reload Data">
-            <FaRedo />
-          </button>
-          <button onClick={handleAddHouse} className="add-btn">
-            <FaPlus /> Add New House
-          </button>
+          <button onClick={handleReloadData} className="reload-btn">Reload</button>
+          <button onClick={handleAddHouse} className="add-btn">+ Add New House</button>
         </div>
       </div>
       <div className="table-container">
@@ -79,8 +82,9 @@ const Houses = ({ houses, areas, setEditing, deleteItem, loadDataForTab, onViewH
               <th>ID</th>
               <th>House Name</th>
               <th>Family Name</th>
-              <th>Location</th>
               <th>Area</th>
+              <th>Location</th>
+              <th>Members</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -90,11 +94,12 @@ const Houses = ({ houses, areas, setEditing, deleteItem, loadDataForTab, onViewH
                 <td>#{house.home_id}</td>
                 <td>{house.house_name}</td>
                 <td>{house.family_name}</td>
-                <td>{house.location_name}</td>
                 <td>{house.area?.name || 'N/A'}</td>
+                <td>{house.location_name}</td>
+                <td>{house.member_count || 0}</td>
                 <td>
                   <button onClick={() => handleViewHouse(house)} className="view-btn">
-                    <FaEye /> View
+                    View
                   </button>
                   <button onClick={() => handleEditHouse(house)} className="edit-btn">
                     <FaEdit /> Edit
@@ -118,6 +123,7 @@ const Houses = ({ houses, areas, setEditing, deleteItem, loadDataForTab, onViewH
         isOpen={isModalOpen}
         onClose={handleModalClose}
         initialData={currentHouse}
+        areas={areas}
         loadDataForTab={loadDataForTab}
       />
       

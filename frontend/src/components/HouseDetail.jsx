@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FaHome, FaUser, FaMoneyBill, FaArrowLeft, FaCrown } from 'react-icons/fa';
-import { memberAPI } from '../api';
+import { useNavigate } from 'react-router-dom';
+import { FaHome, FaUser, FaMoneyBill, FaArrowLeft, FaCrown, FaEdit } from 'react-icons/fa';
 
-const HouseDetail = ({ house, onBack, members }) => {
+const HouseDetail = ({ house, onBack, members, setEditing }) => {
+  const navigate = useNavigate();
   const [houseMembers, setHouseMembers] = useState([]);
   const [payments, setPayments] = useState([]);
   
@@ -29,13 +30,29 @@ const HouseDetail = ({ house, onBack, members }) => {
 
   const guardian = getGuardian();
 
+  const handleViewMember = (memberId) => {
+    // Navigate to member details page
+    navigate(`/members/${memberId}`);
+  };
+
+  const handleEditHouse = () => {
+    if (setEditing && house) {
+      setEditing({ type: 'houses', data: house });
+    }
+  };
+
   return (
     <div className="data-section">
       <div className="section-header">
         <h2><FaHome /> House Details</h2>
-        <button onClick={onBack} className="back-btn">
-          <FaArrowLeft /> Back to Houses
-        </button>
+        <div className="header-actions">
+          <button onClick={handleEditHouse} className="edit-btn">
+            <FaEdit /> Edit House
+          </button>
+          <button onClick={onBack} className="back-btn">
+            <FaArrowLeft /> Back to Houses
+          </button>
+        </div>
       </div>
       
       <div className="house-detail-card">
@@ -74,6 +91,7 @@ const HouseDetail = ({ house, onBack, members }) => {
               <th>Status</th>
               <th>Date of Birth</th>
               <th>Guardian</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -85,11 +103,19 @@ const HouseDetail = ({ house, onBack, members }) => {
                   <td>{member.status}</td>
                   <td>{member.date_of_birth || 'N/A'}</td>
                   <td>{member.isGuardian ? 'Yes' : 'No'}</td>
+                  <td>
+                    <button 
+                      onClick={() => handleViewMember(member.member_id)}
+                      className="view-btn"
+                    >
+                      View
+                    </button>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="5">No members found for this house</td>
+                <td colSpan="6">No members found for this house</td>
               </tr>
             )}
           </tbody>

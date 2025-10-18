@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   FaHome, 
   FaMapMarkerAlt, 
@@ -13,8 +14,6 @@ import {
 import { settingsAPI } from '../api';
 
 const Sidebar = ({ 
-  activeTab, 
-  setActiveTab, 
   theme, 
   setTheme, 
   areasCount, 
@@ -23,6 +22,8 @@ const Sidebar = ({
   collectionsCount,
   disabled
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [appSettings, setAppSettings] = useState(null);
 
   useEffect(() => {
@@ -72,6 +73,51 @@ const Sidebar = ({
     saveThemeSetting(newTheme);
   };
 
+  const getActiveTab = () => {
+    if (location.pathname === '/' || location.pathname === '/dashboard') return 'dashboard';
+    if (location.pathname.startsWith('/areas')) return 'areas';
+    if (location.pathname.startsWith('/houses')) return 'houses';
+    if (location.pathname.startsWith('/members')) return 'members';
+    if (location.pathname.startsWith('/collections')) return 'collections';
+    if (location.pathname.startsWith('/subcollections')) return 'subcollections';
+    if (location.pathname.startsWith('/obligations')) return 'obligations';
+    if (location.pathname.startsWith('/data')) return 'data';
+    return 'dashboard';
+  };
+
+  const handleTabChange = (tab) => {
+    switch (tab) {
+      case 'dashboard':
+        navigate('/dashboard');
+        break;
+      case 'areas':
+        navigate('/areas');
+        break;
+      case 'houses':
+        navigate('/houses');
+        break;
+      case 'members':
+        navigate('/members');
+        break;
+      case 'collections':
+        navigate('/collections');
+        break;
+      case 'subcollections':
+        navigate('/subcollections');
+        break;
+      case 'obligations':
+        navigate('/obligations');
+        break;
+      case 'data':
+        navigate('/data');
+        break;
+      default:
+        navigate('/dashboard');
+    }
+  };
+
+  const activeTab = getActiveTab();
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -84,7 +130,7 @@ const Sidebar = ({
       <nav className="sidebar-nav">
         <button 
           className={activeTab === 'dashboard' ? 'active' : ''}
-          onClick={() => setActiveTab('dashboard')}
+          onClick={() => handleTabChange('dashboard')}
           disabled={disabled}
         >
           <FaHome className="tab-icon" />
@@ -92,7 +138,7 @@ const Sidebar = ({
         </button>
         <button 
           className={activeTab === 'areas' ? 'active' : ''}
-          onClick={() => setActiveTab('areas')}
+          onClick={() => handleTabChange('areas')}
           disabled={disabled}
         >
           <FaMapMarkerAlt className="tab-icon" />
@@ -100,7 +146,7 @@ const Sidebar = ({
         </button>
         <button 
           className={activeTab === 'houses' ? 'active' : ''}
-          onClick={() => setActiveTab('houses')}
+          onClick={() => handleTabChange('houses')}
           disabled={disabled}
         >
           <FaHouseUser className="tab-icon" />
@@ -108,7 +154,7 @@ const Sidebar = ({
         </button>
         <button 
           className={activeTab === 'members' ? 'active' : ''}
-          onClick={() => setActiveTab('members')}
+          onClick={() => handleTabChange('members')}
           disabled={disabled}
         >
           <FaUsers className="tab-icon" />
@@ -116,7 +162,7 @@ const Sidebar = ({
         </button>
         <button 
           className={activeTab === 'collections' ? 'active' : ''}
-          onClick={() => setActiveTab('collections')}
+          onClick={() => handleTabChange('collections')}
           disabled={disabled}
         >
           <FaFolder className="tab-icon" />
@@ -124,7 +170,7 @@ const Sidebar = ({
         </button>
         <button 
           className={activeTab === 'data' ? 'active' : ''}
-          onClick={() => setActiveTab('data')}
+          onClick={() => handleTabChange('data')}
           disabled={disabled}
         >
           <FaDatabase className="tab-icon" />

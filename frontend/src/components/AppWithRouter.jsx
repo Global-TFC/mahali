@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { memberAPI, houseAPI, areaAPI, collectionAPI, subcollectionAPI, obligationAPI, eventAPI, api } from '../api'
-import { FaUser, FaEdit } from 'react-icons/fa'
 import Sidebar from './Sidebar'
 import Dashboard from './Dashboard'
 import Areas from './Areas'
 import Houses from './Houses'
-import HouseDetailsPage from './HouseDetailsPage'
+import HouseDetail from './HouseDetail'
 import Members from './Members'
-import MemberDetailsPage from './MemberDetailsPage'
+import MemberDetails from './MemberDetails'
 import Collections from './Collections'
 import Subcollections from './Subcollections'
 import Obligations from './Obligations'
@@ -18,119 +17,8 @@ import MemberModal from './MemberModal'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import './App.css'
 
-// Determine which router to use based on environment
-const Router = window.location.protocol === 'file:' ? HashRouter : BrowserRouter;
-
-// Create a wrapper component to force re-render on location change
-const AppRoutes = ({ 
-  houses, areas, members, collections, subcollections, memberObligations,
-  setEditing, deleteItem, loadDataForTab, setSelectedCollection, 
-  setSelectedSubcollection, exportData, importData, exportProgress, 
-  importProgress, isBusy, setFormData, formData, handleSubmit,
-  isModalOpen, setIsModalOpen, isDeleteModalOpen, setIsDeleteModalOpen,
-  currentMember, setCurrentMember, memberToDelete, setMemberToDelete,
-  handleAddMember, handleEditMember, handleDeleteMember, handleModalClose,
-  handleDeleteModalClose, confirmDelete,
-  selectedCollection, selectedSubcollection // Add missing props
-}) => {
-  const location = useLocation();
-  
-  return (
-    <Routes location={location} key={location.key}>
-      <Route path="/" element={<Navigate to="/dashboard" />} />
-      <Route path="/dashboard" element={<Dashboard key="dashboard" />} />
-      <Route path="/areas" element={
-        <Areas 
-          key="areas"
-          areas={areas}
-          setEditing={setEditing}
-          deleteItem={deleteItem}
-          loadDataForTab={loadDataForTab}
-        />
-      } />
-      <Route path="/houses" element={
-        <Houses 
-          key="houses"
-          houses={houses}
-          areas={areas}
-          setEditing={setEditing}
-          deleteItem={deleteItem}
-          loadDataForTab={loadDataForTab}
-        />
-      } />
-      <Route path="/houses/:houseId" element={
-        <HouseDetailsPage 
-          key={`house-${location.pathname}`}
-          houses={houses}
-          members={members}
-          areas={areas}
-          setEditing={setEditing}
-        />
-      } />
-      <Route path="/members" element={
-        <Members 
-          key="members"
-          members={members}
-          setEditing={setEditing}
-          deleteItem={deleteItem}
-          loadDataForTab={loadDataForTab}
-        />
-      } />
-      <Route path="/members/:memberId" element={
-        <MemberDetailsPage 
-          key={`member-${location.pathname}`}
-          members={members}
-          houses={houses}
-          areas={areas}
-          setEditing={setEditing}
-          deleteItem={deleteItem}
-          loadDataForTab={loadDataForTab}
-        />
-      } />
-      <Route path="/collections" element={
-        <Collections 
-          key="collections"
-          collections={collections}
-          setEditing={setEditing}
-          deleteItem={deleteItem}
-          setSelectedCollection={setSelectedCollection}
-        />
-      } />
-      <Route path="/subcollections" element={
-        <Subcollections 
-          key="subcollections"
-          subcollections={subcollections}
-          selectedCollection={selectedCollection}
-          setEditing={setEditing}
-          deleteItem={deleteItem}
-          setSelectedSubcollection={setSelectedSubcollection}
-        />
-      } />
-      <Route path="/obligations" element={
-        <Obligations 
-          key="obligations"
-          memberObligations={memberObligations}
-          selectedSubcollection={selectedSubcollection}
-          members={members}
-          setEditing={setEditing}
-          deleteItem={deleteItem}
-        />
-      } />
-      <Route path="/data" element={
-        <DataManagement 
-          key="data"
-          exportData={exportData}
-          importData={importData}
-          exportProgress={exportProgress}
-          importProgress={importProgress}
-          disabled={isBusy}
-        />
-      } />
-    </Routes>
-  );
-};
-
-function App() {
+function AppWithRouter() {
+  const [activeTab, setActiveTab] = useState('dashboard')
   const [members, setMembers] = useState([])
   const [houses, setHouses] = useState([])
   const [areas, setAreas] = useState([])
@@ -257,6 +145,17 @@ function App() {
     return () => clearTimeout(timeout)
   }, [])
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab)
+    // Load data for the new tab if not already loaded
+    if (tab !== 'dashboard' && tab !== 'data') {
+      loadDataForTab(tab)
+    } else {
+      // Mark dashboard and data tabs as loaded since they don't need data
+      setLoadedTabs(prev => new Set(prev).add(tab))
+    }
+  }
+
   const handleSubmit = async (type) => {
     try {
       if (editing) {
@@ -266,7 +165,7 @@ function App() {
       }
       setFormData({})
       setEditing(null)
-      // We don't need to reload data for current tab anymore since we're using routing
+      loadDataForTab(activeTab, true) // Force reload data for current tab
     } catch (error) {
       console.error(`Failed to ${editing ? 'update' : 'create'} ${type}:`, error)
     }
@@ -331,8 +230,8 @@ function App() {
         loadDataForTab('obligations', true) // Force reload
         break
       default:
-        // For other types, we don't need to reload data since we're using routing
-        break
+        // For other types, reload data for current tab
+        loadDataForTab(activeTab, true) // Force reload
     }
   }
 
@@ -406,7 +305,7 @@ function App() {
         setIsImporting(false);
         // Reload all data after import
         setLoadedTabs(new Set(['dashboard']));
-        loadDataForTab('dashboard', true);
+        loadDataForTab(activeTab, true);
       }, 3000);
     } catch (error) {
       setImportProgress({ status: 'error', message: 'Import failed: ' + (error.response?.data?.error || error.message) });
@@ -472,7 +371,7 @@ function App() {
   )
 
   // Show loading indicator for specific tabs
-  const isTabLoading = tabLoadingStates.dashboard // We only need to check dashboard loading now
+  const isTabLoading = tabLoadingStates[activeTab]
   
   // Disable interactions during export/import
   const isBusy = isExporting || isImporting || loading || isTabLoading
@@ -482,6 +381,8 @@ function App() {
       <div className={`app theme-${theme}`}>
         <div className="app-layout">
           <Sidebar 
+            activeTab={activeTab}
+            setActiveTab={handleTabChange}
             theme={theme}
             setTheme={setTheme}
             areasCount={areas.length}
@@ -492,43 +393,89 @@ function App() {
           />
           
           <div className="main-content">
-            <AppRoutes
-              houses={houses}
-              areas={areas}
-              members={members}
-              collections={collections}
-              subcollections={subcollections}
-              memberObligations={memberObligations}
-              setEditing={setEditing}
-              deleteItem={deleteItem}
-              loadDataForTab={loadDataForTab}
-              setSelectedCollection={setSelectedCollection}
-              setSelectedSubcollection={setSelectedSubcollection}
-              exportData={exportData}
-              importData={importData}
-              exportProgress={exportProgress}
-              importProgress={importProgress}
-              isBusy={isBusy}
-              setFormData={setFormData}
-              formData={formData}
-              handleSubmit={handleSubmit}
-              isModalOpen={isModalOpen}
-              setIsModalOpen={setIsModalOpen}
-              isDeleteModalOpen={isDeleteModalOpen}
-              setIsDeleteModalOpen={setIsDeleteModalOpen}
-              currentMember={currentMember}
-              setCurrentMember={setCurrentMember}
-              memberToDelete={memberToDelete}
-              setMemberToDelete={setMemberToDelete}
-              handleAddMember={handleAddMember}
-              handleEditMember={handleEditMember}
-              handleDeleteMember={handleDeleteMember}
-              handleModalClose={handleModalClose}
-              handleDeleteModalClose={handleDeleteModalClose}
-              confirmDelete={confirmDelete}
-              selectedCollection={selectedCollection}
-              selectedSubcollection={selectedSubcollection}
-            />
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/areas" element={
+                <Areas 
+                  areas={areas}
+                  setEditing={setEditing}
+                  deleteItem={deleteItem}
+                  loadDataForTab={loadDataForTab}
+                />
+              } />
+              <Route path="/houses" element={
+                <Houses 
+                  houses={houses}
+                  areas={areas}
+                  setEditing={setEditing}
+                  deleteItem={deleteItem}
+                  loadDataForTab={loadDataForTab}
+                />
+              } />
+              <Route path="/houses/:houseId" element={
+                <HouseDetail 
+                  houses={houses}
+                  members={members}
+                  areas={areas}
+                />
+              } />
+              <Route path="/members" element={
+                <Members 
+                  members={members}
+                  setEditing={setEditing}
+                  deleteItem={deleteItem}
+                  loadDataForTab={loadDataForTab}
+                />
+              } />
+              <Route path="/members/:memberId" element={
+                <MemberDetails 
+                  members={members}
+                  houses={houses}
+                  areas={areas}
+                  setEditing={setEditing}
+                  deleteItem={deleteItem}
+                  loadDataForTab={loadDataForTab}
+                />
+              } />
+              <Route path="/collections" element={
+                <Collections 
+                  collections={collections}
+                  setEditing={setEditing}
+                  deleteItem={deleteItem}
+                  setSelectedCollection={setSelectedCollection}
+                  setActiveTab={setActiveTab}
+                />
+              } />
+              <Route path="/subcollections" element={
+                <Subcollections 
+                  subcollections={subcollections}
+                  selectedCollection={selectedCollection}
+                  setEditing={setEditing}
+                  deleteItem={deleteItem}
+                  setSelectedSubcollection={setSelectedSubcollection}
+                  setActiveTab={setActiveTab}
+                />
+              } />
+              <Route path="/obligations" element={
+                <Obligations 
+                  memberObligations={memberObligations}
+                  selectedSubcollection={selectedSubcollection}
+                  members={members}
+                  setEditing={setEditing}
+                  deleteItem={deleteItem}
+                />
+              } />
+              <Route path="/data" element={
+                <DataManagement 
+                  exportData={exportData}
+                  importData={importData}
+                  exportProgress={exportProgress}
+                  importProgress={importProgress}
+                  disabled={isBusy}
+                />
+              } />
+            </Routes>
             
             {editing && (
               <EditForm
@@ -570,4 +517,4 @@ function App() {
   )
 }
 
-export default App
+export default AppWithRouter
