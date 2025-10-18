@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { memberAPI, houseAPI, areaAPI, collectionAPI, subcollectionAPI, obligationAPI, eventAPI } from './api'
+import MemberDetails from './components/MemberDetails'
 import './App.css'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
   const [formData, setFormData] = useState({})
   const [editing, setEditing] = useState(null)
   const [theme, setTheme] = useState('light') // light, dim, dark
+  const [selectedMember, setSelectedMember] = useState(null)
 
   useEffect(() => {
     // Wait a bit to ensure Django server is running
@@ -123,7 +125,16 @@ function App() {
       obligations: obligationAPI, 
       events: eventAPI 
     }
-    await apis[type].delete(id)
+    
+    // Special handling for members and houses which use custom ID fields
+    if (type === 'members') {
+      await apis[type].delete(id) // member_id is the lookup field
+    } else if (type === 'houses') {
+      await apis[type].delete(id) // home_id is the lookup field
+    } else {
+      await apis[type].delete(id)
+    }
+    
     loadData()
   }
 
@@ -199,29 +210,38 @@ function App() {
             <tr>
               <th>ID</th>
               <th>Name</th>
-              <th>Contact</th>
-              <th>Email</th>
-              <th>Joined Date</th>
+              <th>House</th>
               <th>Status</th>
+              <th>Date of Birth</th>
+              <th>Phone</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {members.map(member => (
-              <tr key={member.id}>
-                <td>#{member.id}</td>
-                <td>{member.name}</td>
-                <td>{member.contact || 'N/A'}</td>
-                <td>{member.email || 'N/A'}</td>
-                <td>{member.joined_date ? new Date(member.joined_date).toLocaleDateString() : 'N/A'}</td>
+              <tr key={member.member_id}>
+                <td>#{member.member_id}</td>
+                <td>{member.name || 'Unknown Member'}</td>
+                <td>{member.house || 'N/A'}</td>
                 <td>
-                  <span className={`status-badge ${member.is_active ? 'active' : 'inactive'}`}>
-                    {member.is_active ? 'Active' : 'Inactive'}
+                  <span className={`status-badge ${member.status === 'live' ? 'active' : member.status === 'dead' ? 'inactive' : 'terminated'}`}>
+                    {member.status?.charAt(0).toUpperCase() + member.status?.slice(1)}
                   </span>
                 </td>
+                <td>{member.date_of_birth ? new Date(member.date_of_birth).toLocaleDateString() : 'N/A'}</td>
+                <td>{member.phone || member.whatsapp || 'N/A'}</td>
                 <td>
+                  <button 
+                    onClick={() => {
+                      setSelectedMember(member);
+                      setActiveTab('member-details');
+                    }} 
+                    className="view-btn"
+                  >
+                    👁️ View
+                  </button>
                   <button onClick={() => setEditing({ type: 'members', data: member })} className="edit-btn">✏️ Edit</button>
-                  <button onClick={() => deleteItem('members', member.id)} className="delete-btn">🗑️ Delete</button>
+                  <button onClick={() => deleteItem('members', member.member_id)} className="delete-btn">🗑️ Delete</button>
                 </td>
               </tr>
             ))}
@@ -463,6 +483,45 @@ function App() {
     </div>
   )
 
+  const renderMemberDetails = () => {
+    if (!selectedMember) {
+      return (
+        <div className="data-section">
+          <div className="section-header">
+            <h2>👤 Member Details</h2>
+            <button onClick={() => setActiveTab('members')} className="back-btn">← Back to Members</button>
+          </div>
+          <div className="empty-state">
+            <p>No member selected.</p>
+          </div>
+        </div>
+      );
+    }
+
+    // Find the house for this member
+    const memberHouse = houses.find(house => house.home_id === selectedMember.house) || null;
+    
+    // Find the area for this house
+    let houseArea = null;
+    if (memberHouse && memberHouse.area) {
+      if (typeof memberHouse.area === 'object') {
+        houseArea = memberHouse.area;
+      } else {
+        houseArea = areas.find(area => area.id === memberHouse.area) || null;
+      }
+    }
+
+    return (
+      <div className="data-section">
+        <div className="section-header">
+          <h2>👤 Member Details</h2>
+          <button onClick={() => setActiveTab('members')} className="back-btn">← Back to Members</button>
+        </div>
+        <MemberDetails member={selectedMember} house={memberHouse} area={houseArea} />
+      </div>
+    );
+  }
+
   const renderDataManagement = () => (
     <div className="data-section">
       <h2>💾 Data Management</h2>
@@ -628,6 +687,7 @@ function App() {
             {activeTab === 'areas' && renderAreas()}
             {activeTab === 'houses' && renderHouses()}
             {activeTab === 'members' && renderMembers()}
+            {activeTab === 'member-details' && renderMemberDetails()}
             {activeTab === 'collections' && renderCollections()}
             {activeTab === 'subcollections' && renderSubcollections()}
             {activeTab === 'obligations' && renderObligations()}

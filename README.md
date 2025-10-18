@@ -98,6 +98,8 @@ The project uses a multi-stage build process:
 | `npm run build-electron` | Package Electron app | `frontend/dist-electron/` |
 | `npm run package-app` | Build everything | `frontend/dist-electron/` |
 
+**Latest Build**: Version 1.0.3 (October 18, 2025) - [Download Installer](frontend/dist-electron/Mahali Setup 1.0.3.exe)
+
 ### Installation Script
 
 For Windows users, you can run the installation script:
@@ -106,6 +108,23 @@ install_app.bat
 ```
 
 This will automatically install all dependencies and build the application.
+
+### Database Issues
+
+If you experience blinking or database connection issues after installation, it may be due to missing database migrations. To fix this:
+
+1. Run the database fix script:
+   ```
+   fix_db.bat
+   ```
+
+2. Or manually run:
+   ```
+   cd backend
+   python fix_db.py
+   ```
+
+This will initialize the database with all required tables and migrations, and ensure both development and production databases are properly synchronized.
 
 ## Usage
 

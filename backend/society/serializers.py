@@ -23,10 +23,16 @@ class HouseSerializer(serializers.ModelSerializer):
     class Meta:
         model = House
         fields = '__all__'
+        read_only_fields = ('home_id',)
 
 
 class MemberSerializer(serializers.ModelSerializer):
     photo = serializers.ImageField(required=False)
+    house = serializers.SlugRelatedField(
+        queryset=House.objects.all(),
+        slug_field='home_id',
+        required=False
+    )
 
     class Meta:
         model = Member

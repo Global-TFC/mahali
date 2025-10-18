@@ -76,7 +76,7 @@ except ImportError as e:
     sys.exit(1)
 ''')
     
-    # Prepare data files
+    # Prepare data files (exclude database and media which should be in user data directory)
     datas = [
         ('mahall_backend/*', 'mahall_backend'),
         ('society/*', 'society'),
@@ -85,15 +85,8 @@ except ImportError as e:
         ('backup_restore.py', '.'),
     ]
     
-    # Add database file if it exists
-    db_file = backend_dir / 'db.sqlite3'
-    if db_file.exists():
-        datas.append(('db.sqlite3', '.'))
-    
-    # Add media directory if it exists
-    media_dir = backend_dir / 'media'
-    if media_dir.exists() and media_dir.is_dir():
-        datas.append(('media', 'media'))
+    # Note: We don't include db.sqlite3 or media directory here
+    # They will be created in the user's data directory at runtime
     
     # Create spec file for Django server
     spec_content = f'''

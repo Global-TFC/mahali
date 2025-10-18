@@ -12,10 +12,28 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+import sys
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Determine the data directory for persistent storage
+# In development, use the backend directory
+# In production (Electron), use the user's data directory
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable (production)
+    # Use the user's AppData directory on Windows for persistent storage
+    if os.name == 'nt':  # Windows
+        DATA_DIR = Path(os.environ.get('APPDATA', '')) / 'Mahali'
+    else:
+        # For other platforms, use home directory
+        DATA_DIR = Path.home() / '.mahali'
+else:
+    # Running in development
+    DATA_DIR = BASE_DIR
+
+# Create data directory if it doesn't exist
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -80,7 +98,7 @@ WSGI_APPLICATION = 'mahall_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': DATA_DIR / 'db.sqlite3',
     }
 }
 
@@ -128,9 +146,9 @@ if DEBUG:
     ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Media files
+# Media files (stored in persistent data directory)
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = DATA_DIR / 'media'
 
 # CORS settings for API access
 CORS_ALLOW_ALL_ORIGINS = True

@@ -287,7 +287,7 @@ const installWizardHtml = `<!DOCTYPE html>
                 <ul>
                     <li>Mahali application</li>
                     <li>Integrated Django backend server</li>
-                    <li>Database</li>
+                    <li>Database initialization</li>
                     <li>All necessary dependencies</li>
                 </ul>
                 
@@ -425,32 +425,58 @@ const installWizardHtml = `<!DOCTYPE html>
         }
         
         async function installSoftware() {
-            const progressBar = document.getElementById('install-progress');
-            const statusMessage = document.getElementById('install-status');
-            
-            // Simulate installation process
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 5;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    statusMessage.textContent = 'Installation completed successfully!';
-                    // In a real implementation, this would launch the application
-                    setTimeout(async () => {
-                        if (isElectron && ipcRenderer) {
-                            // Notify main process that installation is complete
-                            await ipcRenderer.invoke('complete-installation');
-                        } else {
-                            alert('Installation completed! The application will now launch.');
-                            // Close the installer window
-                            window.close();
-                        }
-                    }, 1000);
+          const progressBar = document.getElementById('install-progress');
+          const statusMessage = document.getElementById('install-status');
+          
+          // Installation process with proper steps
+          const steps = [
+            { progress: 10, message: 'Preparing installation...' },
+            { progress: 30, message: 'Installing application files...' },
+            { progress: 50, message: 'Installing Django backend...' },
+            { progress: 70, message: 'Initializing database...' },
+            { progress: 90, message: 'Running database migrations...' },
+            { progress: 100, message: 'Finalizing installation...' }
+          ];
+          
+          let stepIndex = 0;
+          
+          const interval = setInterval(async () => {
+            if (stepIndex < steps.length) {
+              const step = steps[stepIndex];
+              progressBar.style.width = step.progress + '%';
+              statusMessage.textContent = step.message;
+              
+              // When we reach the migration step, actually run migrations
+              if (stepIndex === 4) { // "Running database migrations..."
+                try {
+                  if (isElectron && ipcRenderer) {
+                    // Run migrations through the main process
+                    await ipcRenderer.invoke('run-install-migrations');
+                  }
+                } catch (error) {
+                  console.error('Migration error:', error);
+                  statusMessage.textContent = 'Migration failed: ' + error.message;
                 }
-                progressBar.style.width = progress + '%';
-                statusMessage.textContent = getInstallStatus(progress);
-            }, 100);
+              }
+              
+              stepIndex++;
+            } else {
+              clearInterval(interval);
+              statusMessage.textContent = 'Installation completed successfully!';
+              
+              // In a real implementation, this would launch the application
+              setTimeout(async () => {
+                if (isElectron && ipcRenderer) {
+                  // Notify main process that installation is complete
+                  await ipcRenderer.invoke('complete-installation');
+                } else {
+                  alert('Installation completed! The application will now launch.');
+                  // Close the installer window
+                  window.close();
+                }
+              }, 1000);
+            }
+          }, 500);
         }
         
         function getInstallStatus(progress) {
@@ -625,9 +651,15 @@ function startDjangoServer(callback) {
   const djangoExePath = path.join(process.resourcesPath, 'backend', 'django_server.exe');
   const djangoDir = path.join(process.resourcesPath, 'backend');
 
+  // Set environment variables to ensure Django uses the correct data directory
+  const env = Object.assign({}, process.env, {
+    APPDATA: app.getPath('appData') // This ensures Django can access the AppData directory
+  });
+
   djangoProcess = spawn(djangoExePath, ['runserver', '127.0.0.1:8000', '--noreload'], {
     cwd: djangoDir,
-    stdio: 'pipe'
+    stdio: 'pipe',
+    env: env
   });
 
   // Log Django process events for debugging
@@ -753,27 +785,435 @@ ipcMain.handle('restore-backup', async (event, backupPath) => {
   }
 });
 
-// Function to complete installation and launch main app
-ipcMain.handle('complete-installation', () => {
-  // Mark installation as complete
+// Function to check if this is the first run after installation
+function isFirstRunAfterInstall() {
+  // Check if we have the install marker but haven't completed the post-install setup
   const installMarker = path.join(app.getPath('userData'), 'mahall-installed');
-  fs.writeFileSync(installMarker, 'installed');
+  const postInstallMarker = path.join(app.getPath('userData'), 'mahall-post-install-complete');
   
-  // Close install window and open main window
-  if (installWindow) {
-    installWindow.close();
+  return fs.existsSync(installMarker) && !fs.existsSync(postInstallMarker);
+}
+
+// Function to mark post-install setup as complete
+function markPostInstallComplete() {
+  const postInstallMarker = path.join(app.getPath('userData'), 'mahall-post-install-complete');
+  fs.writeFileSync(postInstallMarker, 'completed');
+}
+
+// Function to run Django migrations
+async function runDjangoMigrations() {
+  return new Promise((resolve, reject) => {
+    try {
+      // In production, call the Django server executable with migrate command
+      const djangoExePath = path.join(process.resourcesPath, 'backend', 'django_server.exe');
+      
+      if (!fs.existsSync(djangoExePath)) {
+        reject(new Error('Django server executable not found'));
+        return;
+      }
+      
+      // Run migrations
+      const command = `"${djangoExePath}" migrate`;
+      console.log('Running Django migrations:', command);
+      
+      const migrateProcess = exec(command, { cwd: path.join(process.resourcesPath, 'backend') }, (error, stdout, stderr) => {
+        if (error) {
+          console.error('Migration error:', error);
+          reject(error);
+          return;
+        }
+        
+        if (stderr) {
+          console.error('Migration stderr:', stderr);
+        }
+        
+        console.log('Migration stdout:', stdout);
+        resolve({ success: true, message: 'Migrations completed successfully' });
+      });
+      
+      // Set a timeout to prevent hanging
+      setTimeout(() => {
+        if (migrateProcess.exitCode === null) {
+          migrateProcess.kill();
+          reject(new Error('Migration process timed out'));
+        }
+      }, 30000); // 30 second timeout
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// Post-install setup window HTML content
+const postInstallHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mahali - Setup Complete</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .setup-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 600px;
+            padding: 30px;
+        }
+        
+        .setup-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .setup-header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .choice-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .choice-button {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+            cursor: pointer;
+            text-align: left;
+        }
+        
+        .choice-button:hover {
+            background-color: #e9e9e9;
+        }
+        
+        .choice-button h3 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        
+        .choice-button p {
+            margin: 0;
+            color: #666;
+        }
+        
+        .file-input {
+            margin: 10px 0;
+            padding: 5px;
+        }
+        
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .status-message {
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            margin-top: 10px;
+        }
+        
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-header">
+            <h1>Mahali Setup Complete</h1>
+            <p>Choose how you'd like to start using Mahali</p>
+        </div>
+        
+        <div class="choice-buttons">
+            <div class="choice-button" id="restore-option">
+                <h3>Restore from Backup</h3>
+                <p>Restore your database and media files from a previous backup (.zip file)</p>
+            </div>
+            <div class="choice-button" id="fresh-install-option">
+                <h3>Fresh Start</h3>
+                <p>Start with a clean database and empty media folder</p>
+            </div>
+        </div>
+        
+        <div id="restore-section" style="display: none; margin-top: 20px;">
+            <input type="file" id="backup-file" class="file-input" accept=".zip">
+            <div id="restore-error" class="error-message"></div>
+            <button id="restore-btn" class="btn">Restore Backup</button>
+        </div>
+        
+        <div class="progress-container" id="setup-progress">
+            <div class="progress-bar">
+                <div class="progress" id="setup-progress-bar"></div>
+            </div>
+            <div class="status-message" id="setup-status">Preparing...</div>
+        </div>
+        
+        <button id="skip-btn" class="btn" style="background-color: #6c757d;">Skip and Start Fresh</button>
+    </div>
+
+    <script>
+        // Check if we're running in Electron
+        const isElectron = typeof require !== 'undefined';
+        let ipcRenderer = null;
+        
+        if (isElectron) {
+            const { ipcRenderer: ipc } = require('electron');
+            ipcRenderer = ipc;
+        }
+        
+        // Set up event listeners
+        document.getElementById('restore-option').addEventListener('click', () => {
+            document.getElementById('restore-section').style.display = 'block';
+        });
+        
+        document.getElementById('fresh-install-option').addEventListener('click', () => {
+            startFreshSetup();
+        });
+        
+        document.getElementById('restore-btn').addEventListener('click', restoreBackup);
+        document.getElementById('skip-btn').addEventListener('click', startFreshSetup);
+        
+        async function restoreBackup() {
+            const fileInput = document.getElementById('backup-file');
+            if (!fileInput.files.length) {
+                showError('Please select a backup file first.');
+                return;
+            }
+            
+            const filePath = fileInput.files[0].path || fileInput.files[0].name;
+            
+            // Show progress
+            document.getElementById('setup-progress').style.display = 'block';
+            document.getElementById('restore-error').style.display = 'none';
+            const progressBar = document.getElementById('setup-progress-bar');
+            const statusMessage = document.getElementById('setup-status');
+            
+            try {
+                statusMessage.textContent = 'Validating backup file...';
+                progressBar.style.width = '10%';
+                
+                // Call the real restore function
+                if (isElectron && ipcRenderer) {
+                    const result = await ipcRenderer.invoke('restore-backup', filePath);
+                    
+                    if (result.success) {
+                        statusMessage.textContent = 'Backup restored successfully!';
+                        progressBar.style.width = '100%';
+                        
+                        // Mark setup as complete and launch main app
+                        setTimeout(() => {
+                            if (ipcRenderer) {
+                                ipcRenderer.invoke('complete-post-install-setup');
+                            }
+                        }, 1000);
+                    } else {
+                        showError(result.message);
+                        document.getElementById('setup-progress').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                showError('Failed to restore backup: ' + error.message);
+                document.getElementById('setup-progress').style.display = 'none';
+            }
+        }
+        
+        async function startFreshSetup() {
+            // Show progress
+            document.getElementById('setup-progress').style.display = 'block';
+            const progressBar = document.getElementById('setup-progress-bar');
+            const statusMessage = document.getElementById('setup-status');
+            
+            try {
+                statusMessage.textContent = 'Initializing fresh database...';
+                progressBar.style.width = '30%';
+                
+                // Run migrations for fresh setup
+                if (isElectron && ipcRenderer) {
+                    const result = await ipcRenderer.invoke('run-migrations');
+                    
+                    if (result.success) {
+                        statusMessage.textContent = 'Database initialized successfully!';
+                        progressBar.style.width = '100%';
+                        
+                        // Mark setup as complete and launch main app
+                        setTimeout(() => {
+                            if (ipcRenderer) {
+                                ipcRenderer.invoke('complete-post-install-setup');
+                            }
+                        }, 1000);
+                    } else {
+                        showError(result.message);
+                        document.getElementById('setup-progress').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                showError('Failed to initialize database: ' + error.message);
+                document.getElementById('setup-progress').style.display = 'none';
+            }
+        }
+        
+        function showError(message) {
+            const errorElement = document.getElementById('restore-error');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+    </script>
+</body>
+</html>`;
+
+let postInstallWindow = null;
+
+function createPostInstallWindow() {
+  postInstallWindow = new BrowserWindow({
+    width: 700,
+    height: 500,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+      enableRemoteModule: true
+    },
+    resizable: false
+  });
+
+  // Create a temporary file for the post-install setup
+  const tempPath = path.join(app.getPath('temp'), 'post-install-setup.html');
+  fs.writeFileSync(tempPath, postInstallHtml);
+  
+  // Load the post-install setup from the temporary file
+  postInstallWindow.loadFile(tempPath);
+
+  postInstallWindow.on('closed', () => {
+    postInstallWindow = null;
+    // Clean up the temporary file
+    try {
+      fs.unlinkSync(tempPath);
+    } catch (error) {
+      console.error('Error cleaning up temporary file:', error);
+    }
+  });
+}
+
+// Function to complete installation and launch main app
+ipcMain.handle('complete-installation', async () => {
+  try {
+    // Run Django migrations during installation
+    console.log('Running Django migrations during installation...');
+    await runDjangoMigrations();
+    console.log('Django migrations completed successfully');
+    
+    // Mark installation as complete
+    const installMarker = path.join(app.getPath('userData'), 'mahall-installed');
+    fs.writeFileSync(installMarker, 'installed');
+    
+    // Close install window
+    if (installWindow) {
+      installWindow.close();
+    }
+    
+    // Show post-install setup window
+    createPostInstallWindow();
+  } catch (error) {
+    console.error('Installation failed:', error);
+    // Even if migrations fail, we'll still mark as installed to avoid infinite loop
+    const installMarker = path.join(app.getPath('userData'), 'mahall-installed');
+    fs.writeFileSync(installMarker, 'installed');
+    
+    if (installWindow) {
+      installWindow.close();
+    }
+    
+    // Show post-install setup window even if migrations failed
+    createPostInstallWindow();
+  }
+});
+
+// Handle post-install setup completion
+ipcMain.handle('complete-post-install-setup', () => {
+  // Mark post-install setup as complete
+  markPostInstallComplete();
+  
+  // Close post-install window and open main window
+  if (postInstallWindow) {
+    postInstallWindow.close();
   }
   createMainWindow();
 });
 
+// Handle migration requests from post-install setup
+ipcMain.handle('run-migrations', async () => {
+  try {
+    console.log('Running Django migrations for fresh setup...');
+    const result = await runDjangoMigrations();
+    console.log('Django migrations completed successfully for fresh setup');
+    return result;
+  } catch (error) {
+    console.error('Migration failed:', error);
+    return { success: false, message: error.message };
+  }
+});
+
 app.whenReady().then(() => {
-  // Check if this is the first run
-  const isFirstRun = !fs.existsSync(path.join(app.getPath('userData'), 'mahall-installed'));
-  
-  if (isFirstRun && !isDev) {
-    createInstallWindow();
+  // Check if this is the first run after installation
+  if (isFirstRunAfterInstall() && !isDev) {
+    createPostInstallWindow();
   } else {
-    createMainWindow();
+    // Check if this is the first run (original installation)
+    const isFirstRun = !fs.existsSync(path.join(app.getPath('userData'), 'mahall-installed'));
+    
+    if (isFirstRun && !isDev) {
+      createInstallWindow();
+    } else {
+      createMainWindow();
+    }
   }
 
   app.on('activate', function () {

@@ -66,6 +66,7 @@ class Member(models.Model):
     photo = models.ImageField(upload_to='members/photos/', null=True, blank=True)
     phone = models.CharField(max_length=15, null=True, blank=True)
     whatsapp = models.CharField(max_length=15, null=True, blank=True)
+    isGuardian = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

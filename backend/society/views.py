@@ -18,10 +18,12 @@ class AreaViewSet(viewsets.ModelViewSet):
 class HouseViewSet(viewsets.ModelViewSet):
     queryset = House.objects.all()
     serializer_class = HouseSerializer
+    lookup_field = 'home_id'
 
 class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
+    lookup_field = 'member_id'
 
 class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.all()

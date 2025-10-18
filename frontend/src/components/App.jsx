@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { memberAPI, houseAPI, areaAPI, collectionAPI, subcollectionAPI, obligationAPI, eventAPI, api } from '../api'
+import { FaUser, FaEdit } from 'react-icons/fa'
 import Sidebar from './Sidebar'
 import Dashboard from './Dashboard'
 import Areas from './Areas'
 import Houses from './Houses'
+import HouseDetail from './HouseDetail'
 import Members from './Members'
+import MemberDetails from './MemberDetails'
 import Collections from './Collections'
 import Subcollections from './Subcollections'
 import Obligations from './Obligations'
@@ -14,6 +17,8 @@ import './App.css'
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [viewingHouse, setViewingHouse] = useState(null)
+  const [viewingMember, setViewingMember] = useState(null)
   const [members, setMembers] = useState([])
   const [houses, setHouses] = useState([])
   const [areas, setAreas] = useState([])
@@ -47,41 +52,6 @@ function App() {
     obligations: false,
     data: false
   })
-
-  useEffect(() => {
-    // Wait a bit to ensure Django server is running
-    const timeout = setTimeout(() => {
-      loadData()
-    }, 3000) // Wait 3 seconds
-
-    return () => clearTimeout(timeout)
-  }, [])
-
-  const loadData = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      // Check if the backend API is accessible by calling the root endpoint
-      await api.get('/')
-      // If successful, load minimal data for initial dashboard
-      const areasRes = await areaAPI.getAll()
-      setAreas(areasRes.data)
-      setRetryCount(0) // Reset retry count on successful load
-    } catch (error) {
-      console.error('Failed to load initial data:', error)
-
-      // Retry with exponential backoff if it's likely a server not ready issue
-      if (retryCount < 3) {
-        setTimeout(() => {
-          setRetryCount(prev => prev + 1)
-          loadData()
-        }, 2000 * (retryCount + 1)) // 2s, 4s, 6s
-      } else {
-        setError('Unable to connect to server. Please restart the application.')
-      }
-    }
-    setLoading(false)
-  }
 
   const loadDataForTab = async (tab, force = false) => {
     // If tab is already loaded and not forced, don't load again
@@ -134,6 +104,61 @@ function App() {
     } finally {
       setTabLoadingStates(prev => ({ ...prev, [tab]: false }))
     }
+  }
+
+  const loadData = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      // Check if the backend API is accessible by calling the root endpoint
+      await api.get('/')
+      // If successful, load minimal data for initial dashboard
+      const areasRes = await areaAPI.getAll()
+      setAreas(areasRes.data)
+      setRetryCount(0) // Reset retry count on successful load
+    } catch (error) {
+      console.error('Failed to load initial data:', error)
+
+      // Retry with exponential backoff if it's likely a server not ready issue
+      if (retryCount < 3) {
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1)
+          loadData()
+        }, 2000 * (retryCount + 1)) // 2s, 4s, 6s
+      } else {
+        setError('Unable to connect to server. Please restart the application.')
+      }
+    }
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    // Wait a bit to ensure Django server is running
+    const timeout = setTimeout(() => {
+      loadData()
+    }, 3000) // Wait 3 seconds
+
+    return () => clearTimeout(timeout)
+  }, [])
+
+  useEffect(() => {
+    // Listen for viewMember events from Members component
+    const handleViewMemberEvent = (event) => {
+      const member = event.detail;
+      setViewingMember(member);
+      // Load additional data needed for member details
+      loadDataForTab('members', true);
+    };
+
+    window.addEventListener('viewMember', handleViewMemberEvent);
+    
+    return () => {
+      window.removeEventListener('viewMember', handleViewMemberEvent);
+    };
+  }, [loadDataForTab]);
+
+  const handleViewHouse = (house) => {
+    setViewingHouse(house);
   }
 
   // Handle tab change with lazy loading
@@ -359,76 +384,120 @@ function App() {
               </div>
             ) : (
               <>
-                {activeTab === 'dashboard' && <Dashboard />}
-                {activeTab === 'areas' && (
-                  <Areas 
-                    areas={areas}
-                    setEditing={setEditing}
-                    deleteItem={deleteItem}
-                    loadDataForTab={loadDataForTab}
-                  />
-                )}
-                {activeTab === 'houses' && (
-                  <Houses 
-                    houses={houses}
-                    areas={areas}
-                    setEditing={setEditing}
-                    deleteItem={deleteItem}
-                  />
-                )}
-                {activeTab === 'members' && (
-                  <Members 
-                    members={members}
-                    setEditing={setEditing}
-                    deleteItem={deleteItem}
-                  />
-                )}
-                {activeTab === 'collections' && (
-                  <Collections 
-                    collections={collections}
-                    setEditing={setEditing}
-                    deleteItem={deleteItem}
-                    setSelectedCollection={setSelectedCollection}
-                    setActiveTab={setActiveTab}
-                  />
-                )}
-                {activeTab === 'subcollections' && (
-                  <Subcollections 
-                    subcollections={subcollections}
-                    selectedCollection={selectedCollection}
-                    setEditing={setEditing}
-                    deleteItem={deleteItem}
-                    setSelectedSubcollection={setSelectedSubcollection}
-                    setActiveTab={setActiveTab}
-                  />
-                )}
-                {activeTab === 'obligations' && (
-                  <Obligations 
-                    memberObligations={memberObligations}
-                    selectedSubcollection={selectedSubcollection}
-                    members={members}
-                    setEditing={setEditing}
-                    deleteItem={deleteItem}
-                  />
-                )}
-                {activeTab === 'data' && (
-                  <DataManagement 
-                    exportData={exportData}
-                    importData={importData}
-                    exportProgress={exportProgress}
-                    importProgress={importProgress}
-                    disabled={isBusy}
-                  />
-                )}
-                {editing && (
-                  <EditForm
-                    editing={editing}
-                    setEditing={setEditing}
-                    formData={formData}
-                    setFormData={setFormData}
-                    handleSubmit={handleSubmit}
-                    disabled={isBusy}
-                  />
+                {viewingMember ? (
+                  <div className="data-section">
+                    <div className="section-header">
+                      <h2><FaUser /> Member Details</h2>
+                      <div className="header-actions">
+                        <button 
+                          onClick={() => setEditing({ type: 'members', data: viewingMember })}
+                          className="edit-btn"
+                        >
+                          <FaEdit /> Edit Member
+                        </button>
+                        <button 
+                          onClick={() => setViewingMember(null)} 
+                          className="back-btn"
+                        >
+                          ← Back to Members
+                        </button>
+                      </div>
+                    </div>
+                    <MemberDetails 
+                      member={viewingMember}
+                      house={houses.find(h => h.home_id === viewingMember.house) || null}
+                      area={areas.find(a => a.id === (houses.find(h => h.home_id === viewingMember.house)?.area)) || null}
+                      onViewHouse={(house) => {
+                        setViewingMember(null);
+                        setViewingHouse(house);
+                      }}
+                      onEditMember={(member) => setEditing({ type: 'members', data: member })}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {activeTab === 'dashboard' && <Dashboard />}
+                    {activeTab === 'areas' && !viewingMember && (
+                      <Areas 
+                        areas={areas}
+                        setEditing={setEditing}
+                        deleteItem={deleteItem}
+                        loadDataForTab={loadDataForTab}
+                      />
+                    )}
+                    {activeTab === 'houses' && viewingHouse && (
+                      <HouseDetail 
+                        house={viewingHouse}
+                        onBack={() => setViewingHouse(null)}
+                        members={members}
+                      />
+                    )}
+                    {activeTab === 'houses' && !viewingHouse && !viewingMember && (
+                      <Houses 
+                        houses={houses}
+                        areas={areas}
+                        setEditing={setEditing}
+                        deleteItem={deleteItem}
+                        loadDataForTab={loadDataForTab}
+                        onViewHouse={handleViewHouse}
+                      />
+                    )}
+                    {activeTab === 'members' && !viewingMember && (
+                      <Members 
+                        members={members}
+                        setEditing={setEditing}
+                        deleteItem={deleteItem}
+                        loadDataForTab={loadDataForTab}
+                      />
+                    )}
+                    {activeTab === 'collections' && !viewingMember && (
+                      <Collections 
+                        collections={collections}
+                        setEditing={setEditing}
+                        deleteItem={deleteItem}
+                        setSelectedCollection={setSelectedCollection}
+                        setActiveTab={setActiveTab}
+                      />
+                    )}
+                    {activeTab === 'subcollections' && !viewingMember && (
+                      <Subcollections 
+                        subcollections={subcollections}
+                        selectedCollection={selectedCollection}
+                        setEditing={setEditing}
+                        deleteItem={deleteItem}
+                        setSelectedSubcollection={setSelectedSubcollection}
+                        setActiveTab={setActiveTab}
+                      />
+                    )}
+                    {activeTab === 'obligations' && !viewingMember && (
+                      <Obligations 
+                        memberObligations={memberObligations}
+                        selectedSubcollection={selectedSubcollection}
+                        members={members}
+                        setEditing={setEditing}
+                        deleteItem={deleteItem}
+                      />
+                    )}
+                    {activeTab === 'data' && !viewingMember && (
+                      <DataManagement 
+                        exportData={exportData}
+                        importData={importData}
+                        exportProgress={exportProgress}
+                        importProgress={importProgress}
+                        disabled={isBusy}
+                      />
+                    )}
+                    {editing && !viewingMember && (
+                      <EditForm
+                        editing={editing}
+                        setEditing={setEditing}
+                        formData={formData}
+                        setFormData={setFormData}
+                        handleSubmit={handleSubmit}
+                        disabled={isBusy}
+                      />
+                    )}
+                  </>
                 )}
               </>
             )}
