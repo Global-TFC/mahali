@@ -444,6 +444,9 @@ function AppWithRouter() {
                   setEditing={setEditing}
                   deleteItem={deleteItem}
                   setSelectedCollection={setSelectedCollection}
+                  handleEditCollection={(collection) => setEditing({ type: 'collections', data: collection })}
+                  handleAddCollection={() => setEditing({ type: 'collections', data: {} })}
+                  loadDataForTab={loadDataForTab}
                   setActiveTab={setActiveTab}
                 />
               } />
@@ -454,6 +457,9 @@ function AppWithRouter() {
                   setEditing={setEditing}
                   deleteItem={deleteItem}
                   setSelectedSubcollection={setSelectedSubcollection}
+                  handleEditSubcollection={(subcollection) => setEditing({ type: 'subcollections', data: subcollection })}
+                  handleAddSubcollection={() => setEditing({ type: 'subcollections', data: {} })}
+                  loadDataForTab={loadDataForTab}
                   setActiveTab={setActiveTab}
                 />
               } />
@@ -464,6 +470,20 @@ function AppWithRouter() {
                   members={members}
                   setEditing={setEditing}
                   deleteItem={deleteItem}
+                  handleAddObligation={() => setEditing({ type: 'obligations', data: {} })}
+                  handleEditObligation={(obligation) => setEditing({ type: 'obligations', data: obligation })}
+                  handlePayObligation={(obligation) => {
+                    // Handle payment logic here
+                    console.log('Pay obligation:', obligation)
+                  }}
+                  handleAddBulkObligation={() => {
+                    // Handle bulk obligation creation here
+                    console.log('Add bulk obligation')
+                  }}
+                  setSelectedSubcollection={setSelectedSubcollection}
+                  setSelectedCollection={setSelectedCollection}
+                  loadDataForTab={loadDataForTab}
+                  setActiveTab={setActiveTab}
                 />
               } />
               <Route path="/data" element={

@@ -1,15 +1,29 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
+from django.db.models import Q, Sum, Count
 from django.http import HttpResponse, Http404
 from django.conf import settings
 from django.core.management import execute_from_command_line
 from .models import Member, Area, House, Collection, SubCollection, MemberObligation, Todo, AppSettings
-from .serializers import MemberSerializer, AreaSerializer, HouseSerializer, CollectionSerializer, SubCollectionSerializer, MemberObligationSerializer, TodoSerializer, AppSettingsSerializer
+from .serializers import MemberSerializer, AreaSerializer, HouseSerializer, CollectionSerializer, SubCollectionSerializer, MemberObligationSerializer, MemberObligationDetailSerializer, TodoSerializer, AppSettingsSerializer
 import os
 import zipfile
 import tempfile
 import shutil
+from typing import Any
+
+# Custom pagination class
+class MemberPagination(PageNumberPagination):
+    page_size = 15
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+class HousePagination(PageNumberPagination):
+    page_size = 15
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class AreaViewSet(viewsets.ModelViewSet):
     queryset = Area.objects.all()
@@ -19,11 +33,101 @@ class HouseViewSet(viewsets.ModelViewSet):
     queryset = House.objects.all()
     serializer_class = HouseSerializer
     lookup_field = 'home_id'
+    pagination_class = HousePagination
+    
+    def get_serializer_class(self):
+        if self.action == 'list' or self.action == 'search':
+            from .serializers import HouseListSerializer
+            return HouseListSerializer
+        return HouseSerializer
+    
+    def get_queryset(self):
+        queryset = House.objects.all()
+        
+        # Apply filters from query parameters
+        search = self.request.query_params.get('search', None)
+        area_id = self.request.query_params.get('area', None)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(house_name__icontains=search) | 
+                Q(family_name__icontains=search) | 
+                Q(location_name__icontains=search)
+            )
+            
+        if area_id:
+            queryset = queryset.filter(area=area_id)
+            
+        return queryset
+    
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Search houses with filters and pagination"""
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            # Use the appropriate serializer based on the action
+            serializer_class = self.get_serializer_class()
+            serializer = serializer_class(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        # Use the appropriate serializer based on the action
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(queryset, many=True)
+        return Response(serializer.data)
 
 class MemberViewSet(viewsets.ModelViewSet):
     queryset = Member.objects.all()
     serializer_class = MemberSerializer
     lookup_field = 'member_id'
+    pagination_class = MemberPagination
+    
+    def get_serializer_class(self):
+        if self.action == 'search':
+            from .serializers import MemberDetailSerializer
+            return MemberDetailSerializer
+        return MemberSerializer
+    
+    def get_queryset(self):
+        queryset = Member.objects.all().select_related('house', 'house__area')
+        
+        # Apply filters from query parameters
+        search = self.request.query_params.get('search', None)
+        area_id = self.request.query_params.get('area', None)
+        status = self.request.query_params.get('status', None)
+        is_guardian = self.request.query_params.get('is_guardian', None)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | 
+                Q(surname__icontains=search) | 
+                Q(house__house_name__icontains=search) |
+                Q(member_id__icontains=search)
+            )
+            
+        if area_id:
+            queryset = queryset.filter(house__area=area_id)
+            
+        if status:
+            queryset = queryset.filter(status=status)
+            
+        if is_guardian is not None:
+            is_guardian_bool = str(is_guardian).lower() == 'true'
+            queryset = queryset.filter(isGuardian=is_guardian_bool)
+            
+        return queryset
+    
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Search members with filters and pagination"""
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.all()
@@ -36,6 +140,246 @@ class SubCollectionViewSet(viewsets.ModelViewSet):
 class MemberObligationViewSet(viewsets.ModelViewSet):
     queryset = MemberObligation.objects.all()
     serializer_class = MemberObligationSerializer
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return MemberObligationDetailSerializer
+        return MemberObligationSerializer
+
+    def update(self, request, *args, **kwargs):
+        """Override update to allow partial updates"""
+        partial = kwargs.pop('partial', True)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        queryset = MemberObligation.objects.all()
+        
+        # Filter by subcollection if provided
+        subcollection_id = self.request.query_params.get('subcollection', None)
+        if subcollection_id:
+            queryset = queryset.filter(subcollection=subcollection_id)
+            
+        # Search by member name or ID
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(member__name__icontains=search) | 
+                Q(member__member_id__icontains=search)
+            )
+            
+        # Filter by paid status
+        paid_status = self.request.query_params.get('paid_status', None)
+        if paid_status:
+            queryset = queryset.filter(paid_status=paid_status)
+            
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        # Log the incoming data for debugging
+        print("=== DEBUG: Incoming obligation data ===")
+        print("Request data:", request.data)
+        print("Member field type:", type(request.data.get('member')))
+        print("Member field value:", request.data.get('member'))
+        print("Subcollection field type:", type(request.data.get('subcollection')))
+        print("Subcollection field value:", request.data.get('subcollection'))
+        print("=====================================")
+        return super().create(request, *args, **kwargs)
+
+    @action(detail=False, methods=['post'])
+    def bulk_create(self, request):
+        """Create multiple obligations at once"""
+        # Log the incoming data for debugging
+        print("=== DEBUG: Incoming bulk obligation data ===")
+        print("Request data:", request.data)
+        try:
+            obligations_data = request.data.get('obligations', [])
+            if not obligations_data:
+                return Response({'error': 'No obligations data provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            created_obligations = []
+            errors = []
+            
+            for i, obligation_data in enumerate(obligations_data):
+                try:
+                    print(f"--- Processing obligation {i+1} ---")
+                    print("Obligation data:", obligation_data)
+                    serializer = self.get_serializer(data=obligation_data)
+                    if serializer.is_valid():
+                        print("Serializer is valid")
+                        obligation = serializer.save()
+                        created_obligations.append(serializer.data)
+                        print("Created obligation:", serializer.data)
+                    else:
+                        print("Serializer errors:", serializer.errors)
+                        errors.append({
+                            'data': obligation_data,
+                            'errors': serializer.errors
+                        })
+                except Exception as e:
+                    print("Exception during obligation creation:", str(e))
+                    errors.append({
+                        'data': obligation_data,
+                        'errors': str(e)
+                    })
+            
+            response_data = {
+                'created': created_obligations,
+                'errors': errors,
+                'total_created': len(created_obligations),
+                'total_errors': len(errors)
+            }
+            
+            if errors:
+                print("=== DEBUG: Response with errors ===")
+                print("Response data:", response_data)
+                print("==================================")
+                return Response(response_data, status=status.HTTP_201_CREATED if created_obligations else status.HTTP_400_BAD_REQUEST)
+            
+            print("=== DEBUG: Successful response ===")
+            print("Response data:", response_data)
+            print("==================================")
+            return Response(response_data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            print("Exception in bulk_create:", str(e))
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['patch'])
+    def bulk_pay(self, request):
+        """Mark multiple obligations as paid in a single database operation
+        
+        Expects a JSON payload with:
+        {
+            "obligation_ids": [1, 2, 3, ...]  # List of obligation IDs to mark as paid
+        }
+        
+        Returns:
+        {
+            "updated_count": 3,  # Number of obligations actually updated
+            "message": "Successfully marked 3 obligations as paid"
+        }
+        """
+        try:
+            obligation_ids = request.data.get('obligation_ids', [])
+            if not obligation_ids:
+                return Response({'error': 'No obligation IDs provided'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Update all obligations to paid status
+            updated_count = MemberObligation.objects.filter(
+                id__in=obligation_ids
+            ).update(paid_status='paid')
+            
+            return Response({
+                'updated_count': updated_count,
+                'message': f'Successfully marked {updated_count} obligations as paid'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            print("Exception in bulk_pay:", str(e))
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """Search obligations with filters"""
+        queryset = self.get_queryset()
+        
+        # Apply filters from query parameters
+        subcollection_id = request.query_params.get('subcollection', None)
+        search = request.query_params.get('search', None)
+        area_id = request.query_params.get('area', None)
+        paid_status = request.query_params.get('paid_status', None)
+        
+        if subcollection_id:
+            queryset = queryset.filter(subcollection=subcollection_id)
+        if search:
+            queryset = queryset.filter(
+                Q(member__name__icontains=search) | 
+                Q(member__member_id__icontains=search)
+            )
+        if area_id:
+            queryset = queryset.filter(member__house__area=area_id)
+        if paid_status:
+            # Handle combined pending/overdue status
+            if paid_status == 'pending':
+                queryset = queryset.filter(Q(paid_status='pending') | Q(paid_status='overdue'))
+            else:
+                queryset = queryset.filter(paid_status=paid_status)
+                
+        # Apply pagination
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = MemberObligationDetailSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
+        serializer = MemberObligationDetailSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """Get obligation statistics for a subcollection"""
+        subcollection_id = request.query_params.get('subcollection', None)
+        
+        if not subcollection_id:
+            return Response({'error': 'subcollection parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            subcollection = SubCollection.objects.get(id=subcollection_id)
+        except SubCollection.DoesNotExist:
+            return Response({'error': 'Subcollection not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get obligations for this subcollection
+        obligations = MemberObligation.objects.filter(subcollection=subcollection)
+        
+        # Calculate statistics
+        total_members = obligations.count()
+        paid_count = obligations.filter(paid_status='paid').count()
+        pending_count = obligations.filter(paid_status='pending').count()
+        overdue_count = obligations.filter(paid_status='overdue').count()
+        partial_count = obligations.filter(paid_status='partial').count()
+        
+        # Combine pending and overdue for "Pending / Overdue"
+        pending_overdue_count = pending_count + overdue_count
+        
+        # Calculate amounts
+        total_amount = obligations.aggregate(total=Sum('amount'))['total'] or 0
+        paid_amount = obligations.filter(paid_status='paid').aggregate(total=Sum('amount'))['total'] or 0
+        pending_amount = obligations.filter(Q(paid_status='pending') | Q(paid_status='overdue')).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # Calculate collection progress percentage
+        progress_percentage = (paid_amount / total_amount * 100) if total_amount > 0 else 0
+        
+        stats = {
+            'total_members': total_members,
+            'paid': {
+                'count': paid_count,
+                'amount': float(paid_amount)
+            },
+            'pending_overdue': {
+                'count': pending_overdue_count,
+                'amount': float(pending_amount)
+            },
+            'partial': {
+                'count': partial_count,
+                'amount': float(obligations.filter(paid_status='partial').aggregate(total=Sum('amount'))['total'] or 0)
+            },
+            'collection_progress': {
+                'percentage': round(progress_percentage, 2),
+                'paid_amount': float(paid_amount),
+                'total_amount': float(total_amount)
+            }
+        }
+        
+        return Response(stats)
 
     @action(detail=False, methods=['post'])
     def export_data(self, request):
@@ -67,8 +411,8 @@ class MemberObligationViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
-            if os.path.exists(zip_path):
-                os.unlink(zip_path)
+            if 'zip_path' in locals() and os.path.exists(zip_path):
+                os.remove(zip_path)
 
     @action(detail=False, methods=['post'])
     def import_data(self, request):

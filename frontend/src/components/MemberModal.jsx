@@ -5,6 +5,7 @@ import { FaUser, FaSearch, FaTimes, FaUpload } from 'react-icons/fa';
 const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) => {
   const [formData, setFormData] = useState({
     name: '',
+    surname: '',  // Added surname field
     house: '',
     status: 'live',
     date_of_birth: '',
@@ -44,6 +45,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
       if (initialData) {
         setFormData({
           name: initialData.name || '',
+          surname: initialData.surname || '',  // Added surname field
           house: initialData.house?.home_id || initialData.house || '',
           status: initialData.status || 'live',
           date_of_birth: initialData.date_of_birth || '',
@@ -63,6 +65,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
       } else {
         setFormData({
           name: '',
+          surname: '',  // Added surname field
           house: '',
           status: 'live',
           date_of_birth: '',
@@ -165,7 +168,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
       ...prev,
       father: member.member_id,
       father_name: member.name || '',
-      father_surname: member.father_surname || ''
+      father_surname: member.surname || ''
     }));
     setShowFatherSearch(false);
     setFatherSearchTerm('');
@@ -176,7 +179,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
       ...prev,
       mother: member.member_id,
       mother_name: member.name || '',
-      mother_surname: member.mother_surname || ''
+      mother_surname: member.surname || ''
     }));
     setShowMotherSearch(false);
     setMotherSearchTerm('');
@@ -219,6 +222,20 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
         delete submitData.photo;
       }
       
+      // Remove empty father/mother IDs
+      if (!submitData.father) {
+        delete submitData.father;
+      }
+      
+      if (!submitData.mother) {
+        delete submitData.mother;
+      }
+      
+      // Remove empty house ID
+      if (!submitData.house) {
+        delete submitData.house;
+      }
+      
       if (initialData) {
         // Update existing member
         await memberAPI.update(initialData.member_id, submitData);
@@ -257,18 +274,33 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="name">Full Name *</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              disabled={loading}
-              placeholder="Enter full name"
-            />
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="name">Full Name *</label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                disabled={loading}
+                placeholder="Enter full name"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="surname">Surname</label>
+              <input
+                type="text"
+                id="surname"
+                name="surname"
+                value={formData.surname}
+                onChange={handleChange}
+                disabled={loading}
+                placeholder="Enter surname (optional)"
+              />
+            </div>
           </div>
           
           {/* Photo Upload Section */}

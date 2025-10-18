@@ -10,6 +10,7 @@ export const memberAPI = {
   create: (data) => api.post('/members/', data),
   update: (id, data) => api.put(`/members/${id}/`, data),
   delete: (id) => api.delete(`/members/${id}/`),
+  search: (params) => api.get('/members/search/', { params }),
 };
 
 export const houseAPI = {
@@ -18,6 +19,7 @@ export const houseAPI = {
   create: (data) => api.post('/houses/', data),
   update: (id, data) => api.put(`/houses/${id}/`, data),
   delete: (id) => api.delete(`/houses/${id}/`),
+  search: (params) => api.get('/houses/search/', { params }),
 };
 
 export const areaAPI = {
@@ -48,15 +50,22 @@ export const obligationAPI = {
   getAll: () => api.get('/obligations/'),
   get: (id) => api.get(`/obligations/${id}/`),
   create: (data) => api.post('/obligations/', data),
+  bulkCreate: (data) => api.post('/obligations/bulk_create/', data),
+  bulkPay: (data) => api.patch('/obligations/bulk_pay/', data),
   update: (id, data) => api.put(`/obligations/${id}/`, data),
+  partialUpdate: (id, data) => api.patch(`/obligations/${id}/`, data),
   delete: (id) => api.delete(`/obligations/${id}/`),
+  search: (params) => api.get('/obligations/search/', { params }),
+  statistics: (subcollectionId) => api.get('/obligations/statistics/', { 
+    params: { subcollection: subcollectionId } 
+  }),
   exportData: () => api.post('/obligations/export_data/', {}, {
     responseType: 'blob',
   }),
   importData: (formData) => api.post('/obligations/import_data/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
-};
+}
 
 export const eventAPI = {
   getAll: () => api.get('/events/'),

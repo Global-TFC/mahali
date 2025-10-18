@@ -52,6 +52,7 @@ class Member(models.Model):
 
     member_id = models.CharField(max_length=50, unique=True, db_index=True)  # Custom sequential ID, indexed
     name = models.CharField(max_length=100)  # Added name field
+    surname = models.CharField(max_length=100, blank=True)  # Optional surname field
     house = models.ForeignKey(House, null=True, blank=True, on_delete=models.SET_NULL, related_name='members', db_index=True)  # Reverse rel + index
     adhar = models.CharField(max_length=12, null=True, blank=True, validators=[RegexValidator(r'^\d{12}$')])
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='live', db_index=True)  # Indexed for filters
@@ -148,8 +149,24 @@ class MemberObligation(models.Model):  # The through-table for member-subcollect
         ]
 
     def save(self, *args, **kwargs):
-        if not self.area and self.member.house:
-            self.area = self.member.house.area  # Auto-denormalize area from member's house
+        # Add debugging information
+        print(f"=== DEBUG: MemberObligation.save() ===")
+        print(f"self.member: {self.member}")
+        print(f"self.member type: {type(self.member)}")
+        print(f"self.subcollection: {self.subcollection}")
+        print(f"self.subcollection type: {type(self.subcollection)}")
+        print(f"self.amount: {self.amount}")
+        print(f"self.paid_status: {self.paid_status}")
+        print(f"====================================")
+        
+        # Check if member exists before accessing its properties
+        try:
+            if not self.area and self.member and hasattr(self.member, 'house') and self.member.house:
+                self.area = self.member.house.area  # Auto-denormalize area from member's house
+        except Exception as e:
+            # If there's any issue with accessing the member or house, just continue without setting area
+            print(f"Error setting area: {e}")
+            pass
         super().save(*args, **kwargs)
 
 

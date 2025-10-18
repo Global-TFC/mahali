@@ -7,6 +7,7 @@ const EditForm = ({ editing, setEditing, formData, setFormData, handleSubmit }) 
     if (editing.type === 'members') {
       defaultFields = {
         name: '',
+        surname: '',  // Added surname field
         contact: '',
         email: '',
         address: '',
@@ -58,6 +59,7 @@ const EditForm = ({ editing, setEditing, formData, setFormData, handleSubmit }) 
   const getFieldLabel = (key) => {
     const labels = {
       name: 'Full Name',
+      surname: 'Surname',  // Added label for surname
       contact: 'Phone Number',
       email: 'Email Address',
       address: 'Address',
@@ -89,6 +91,45 @@ const EditForm = ({ editing, setEditing, formData, setFormData, handleSubmit }) 
     return 'text'
   }
 
+  // Render member name fields in a row
+  const renderMemberNameFields = () => {
+    if (editing.type !== 'members') return null;
+    
+    return (
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="name">Full Name</label>
+          <input
+            id="name"
+            type="text"
+            placeholder="Full Name"
+            value={formData.name || ''}
+            onChange={(e) => setFormData({...formData, name: e.target.value})}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="surname">Surname</label>
+          <input
+            id="surname"
+            type="text"
+            placeholder="Surname (Optional)"
+            value={formData.surname || ''}
+            onChange={(e) => setFormData({...formData, surname: e.target.value})}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Check if a field should be skipped
+  const shouldSkipField = (key) => {
+    const skipFields = ['id', 'created_at', 'updated_at', 'image', 'members', 'member_id'];
+    if (editing.type === 'members' && (key === 'name' || key === 'surname')) {
+      return true; // Skip individual name fields for members as they're rendered together
+    }
+    return skipFields.includes(key);
+  }
+
   return (
     <div className="edit-form">
       <div className="form-header">
@@ -96,8 +137,12 @@ const EditForm = ({ editing, setEditing, formData, setFormData, handleSubmit }) 
         <button type="button" className="close-btn" onClick={() => { setEditing(null); setFormData({}) }}>✕</button>
       </div>
       <form onSubmit={(e) => { e.preventDefault(); handleSubmit(editing.type) }}>
+        {/* Special handling for member name fields */}
+        {editing.type === 'members' && renderMemberNameFields()}
+        
         {Object.keys(formData).map(key => {
-          if (['id', 'created_at', 'updated_at', 'image', 'members'].includes(key)) return null
+          // Skip certain fields that shouldn't be edited directly
+          if (shouldSkipField(key)) return null;
           
           const fieldType = getFieldType(key)
           const fieldLabel = getFieldLabel(key)

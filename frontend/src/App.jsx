@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { memberAPI, houseAPI, areaAPI, collectionAPI, subcollectionAPI, obligationAPI, eventAPI } from './api'
 import MemberDetails from './components/MemberDetails'
+import { FaArrowLeft, FaPlus } from 'react-icons/fa'
 import './App.css'
+import PaymentConfirmModal from './components/PaymentConfirmModal'
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -20,7 +22,21 @@ function App() {
   const [editing, setEditing] = useState(null)
   const [theme, setTheme] = useState('light') // light, dim, dark
   const [selectedMember, setSelectedMember] = useState(null)
-
+  const [exportProgress, setExportProgress] = useState(null)
+  const [importProgress, setImportProgress] = useState(null)
+  // State for PaymentConfirmModal
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [obligationToPay, setObligationToPay] = useState(null)
+  
+  // Member search and filter states
+  const [memberSearchTerm, setMemberSearchTerm] = useState('')
+  const [memberSelectedArea, setMemberSelectedArea] = useState('')
+  const [memberSelectedStatus, setMemberSelectedStatus] = useState('')
+  const [memberIsGuardianFilter, setMemberIsGuardianFilter] = useState('')
+  const [filteredMembers, setFilteredMembers] = useState([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(10)
+  
   useEffect(() => {
     // Wait a bit to ensure Django server is running
     const timeout = setTimeout(() => {
@@ -51,6 +67,9 @@ function App() {
         obligationAPI.getAll()
       ])
       
+      console.log('Subcollections data:', subcollectionsRes.data);
+      console.log('Collections data:', collectionsRes.data);
+      
       setMembers(membersRes.data)
       setHouses(housesRes.data)
       setAreas(areasRes.data)
@@ -72,6 +91,71 @@ function App() {
       }
     }
     setLoading(false)
+  }
+
+  const loadDataForTab = async (tab, force = false) => {
+    if (tab === 'obligations' || force) {
+      try {
+        const obligationsRes = await obligationAPI.getAll()
+        setMemberObligations(obligationsRes.data)
+        // Also reload other data that might have changed
+        const [membersRes, housesRes, areasRes, collectionsRes, subcollectionsRes] = await Promise.all([
+          memberAPI.getAll(),
+          houseAPI.getAll(),
+          areaAPI.getAll(),
+          collectionAPI.getAll(),
+          subcollectionAPI.getAll()
+        ])
+        setMembers(membersRes.data)
+        setHouses(housesRes.data)
+        setAreas(areasRes.data)
+        setCollections(collectionsRes.data)
+        setSubcollections(subcollectionsRes.data)
+      } catch (error) {
+        console.error('Failed to load obligations:', error)
+      }
+    }
+    // Add other tab loading logic as needed
+  }
+
+  const handlePayObligation = (obligation) => {
+    setObligationToPay(obligation)
+    setIsPaymentModalOpen(true)
+  }
+
+  const handlePaymentModalClose = () => {
+    setIsPaymentModalOpen(false)
+    setObligationToPay(null)
+  }
+
+  const handlePaymentConfirm = async () => {
+    try {
+      // Update obligation status to 'paid'
+      // Only send the fields that need to be updated to avoid validation issues
+      const updateData = {
+        paid_status: 'paid'
+      };
+      
+      await obligationAPI.partialUpdate(obligationToPay.id, updateData);
+      
+      // Reload obligations data
+      loadDataForTab('obligations', true);
+      
+      // Close the modal
+      handlePaymentModalClose();
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Failed to process payment:', error);
+      throw error;
+    }
+  }
+
+  const handleAddBulkObligation = () => {
+    // This would open the bulk obligation modal
+    console.log('Add bulk obligation')
+    // For now, just show an alert
+    alert('Bulk obligation creation would open here')
   }
 
   const handleSubmit = async (type) => {
@@ -198,69 +282,192 @@ function App() {
     }
   }
 
-  const renderMembers = () => (
-    <div className="data-section">
-      <div className="section-header">
-        <h2>👥 Members</h2>
-        <button onClick={() => setEditing({ type: 'members', data: {} })} className="add-btn">+ Add New Member</button>
-      </div>
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>House</th>
-              <th>Status</th>
-              <th>Date of Birth</th>
-              <th>Phone</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map(member => (
-              <tr key={member.member_id}>
-                <td>#{member.member_id}</td>
-                <td>{member.name || 'Unknown Member'}</td>
-                <td>{member.house || 'N/A'}</td>
-                <td>
-                  <span className={`status-badge ${member.status === 'live' ? 'active' : member.status === 'dead' ? 'inactive' : 'terminated'}`}>
-                    {member.status?.charAt(0).toUpperCase() + member.status?.slice(1)}
-                  </span>
-                </td>
-                <td>{member.date_of_birth ? new Date(member.date_of_birth).toLocaleDateString() : 'N/A'}</td>
-                <td>{member.phone || member.whatsapp || 'N/A'}</td>
-                <td>
-                  <button 
-                    onClick={() => {
-                      setSelectedMember(member);
-                      setActiveTab('member-details');
-                    }} 
-                    className="view-btn"
-                  >
-                    👁️ View
-                  </button>
-                  <button onClick={() => setEditing({ type: 'members', data: member })} className="edit-btn">✏️ Edit</button>
-                  <button onClick={() => deleteItem('members', member.member_id)} className="delete-btn">🗑️ Delete</button>
-                </td>
+  const renderMembers = () => {
+    // Reset all filters
+    const resetFilters = () => {
+      setMemberSearchTerm('')
+      setMemberSelectedArea('')
+      setMemberSelectedStatus('')
+      setMemberIsGuardianFilter('')
+      setCurrentPage(1)
+    }
+    
+    // Pagination logic
+    const indexOfLastItem = currentPage * itemsPerPage
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage
+    const currentMembers = filteredMembers.slice(indexOfFirstItem, indexOfLastItem)
+    const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
+    
+    return (
+      <div className="data-section">
+        <div className="section-header">
+          <h2>👥 Members</h2>
+          <button onClick={() => setEditing({ type: 'members', data: {} })} className="add-btn">
+            <FaPlus />
+          </button>
+        </div>
+        
+        {/* Search and Filters */}
+        <div className="filter-section">
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="member-search">Search Members</label>
+              <input
+                type="text"
+                id="member-search"
+                placeholder="Search by name, surname, or house..."
+                value={memberSearchTerm}
+                onChange={(e) => setMemberSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="member-area">Area</label>
+              <select
+                id="member-area"
+                value={memberSelectedArea}
+                onChange={(e) => setMemberSelectedArea(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Areas</option>
+                {areas.map(area => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="member-status">Status</label>
+              <select
+                id="member-status"
+                value={memberSelectedStatus}
+                onChange={(e) => setMemberSelectedStatus(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Statuses</option>
+                <option value="live">Live</option>
+                <option value="dead">Dead</option>
+                <option value="terminated">Terminated</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="member-guardian">Guardian</label>
+              <select
+                id="member-guardian"
+                value={memberIsGuardianFilter}
+                onChange={(e) => setMemberIsGuardianFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All</option>
+                <option value="true">Guardians Only</option>
+                <option value="false">Non-Guardians Only</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label>&nbsp;</label>
+              <button onClick={resetFilters} className="cancel-btn">
+                Reset Filters
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Surname</th>
+                <th>Area</th>
+                <th>House Name</th>
+                <th>Status</th>
+                <th>Guardian</th>
+                <th>Phone</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {members.length === 0 && (
-          <div className="empty-state">
-            <p>No members found. Add a new member to get started.</p>
+            </thead>
+            <tbody>
+              {currentMembers.map(member => (
+                <tr key={member.member_id}>
+                  <td>#{member.member_id}</td>
+                  <td>{member.name || 'N/A'}</td>
+                  <td>{member.surname || 'N/A'}</td>
+                  <td>{member.house?.area?.name || 'N/A'}</td>
+                  <td>{member.house?.house_name || 'N/A'}</td>
+                  <td>
+                    <span className={`status-badge ${member.status === 'live' ? 'active' : member.status === 'dead' ? 'inactive' : 'terminated'}`}>
+                      {member.status?.charAt(0).toUpperCase() + member.status?.slice(1)}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={member.isGuardian ? 'member-guardian-yes' : 'member-guardian-no'}>
+                      {member.isGuardian ? 'Yes' : 'No'}
+                    </span>
+                  </td>
+                  <td>{member.phone || member.whatsapp || 'N/A'}</td>
+                  <td>
+                    <button 
+                      onClick={() => {
+                        setSelectedMember(member);
+                        setActiveTab('member-details');
+                      }} 
+                      className="view-btn"
+                    >
+                      👁️ View
+                    </button>
+                    <button onClick={() => setEditing({ type: 'members', data: member })} className="edit-btn">✏️ Edit</button>
+                    <button onClick={() => deleteItem('members', member.member_id)} className="delete-btn">🗑️ Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filteredMembers.length === 0 && (
+            <div className="empty-state">
+              <p>No members found. Add a new member to get started.</p>
+            </div>
+          )}
+        </div>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="pagination">
+            <button 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="pagination-btn"
+            >
+              Previous
+            </button>
+            
+            <span className="pagination-info">
+              Page {currentPage} of {totalPages}
+            </span>
+            
+            <button 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="pagination-btn"
+            >
+              Next
+            </button>
           </div>
         )}
       </div>
-    </div>
-  )
+    )
+  }
 
   const renderHouses = () => (
     <div className="data-section">
       <div className="section-header">
         <h2>🏘️ Houses</h2>
-        <button onClick={() => setEditing({ type: 'houses', data: {} })} className="add-btn">+ Add New House</button>
+        <button onClick={() => setEditing({ type: 'houses', data: {} })} className="add-btn">
+          <FaPlus />
+        </button>
       </div>
       <div className="table-container">
         <table>
@@ -303,7 +510,9 @@ function App() {
     <div className="data-section">
       <div className="section-header">
         <h2>📍 Areas</h2>
-        <button onClick={() => setEditing({ type: 'areas', data: {} })} className="add-btn">+ Add New Area</button>
+        <button onClick={() => setEditing({ type: 'areas', data: {} })} className="add-btn">
+          <FaPlus />
+        </button>
       </div>
       <div className="table-container">
         <table>
@@ -344,7 +553,9 @@ function App() {
     <div className="data-section">
       <div className="section-header">
         <h2>📂 Collections</h2>
-        <button onClick={() => setEditing({ type: 'collections', data: {} })} className="add-btn">+ Add New Collection</button>
+        <button onClick={() => setEditing({ type: 'collections', data: {} })} className="add-btn">
+          <FaPlus />
+        </button>
       </div>
       <div className="table-container">
         <table>
@@ -388,8 +599,15 @@ function App() {
   const renderSubcollections = () => (
     <div className="data-section">
       <div className="section-header">
-        <h2>📋 Subcollections - {selectedCollection?.name}</h2>
-        <button onClick={() => setEditing({ type: 'subcollections', data: {} })} className="add-btn">+ Add New Subcollection</button>
+        <div className="header-content">
+          <button onClick={() => setActiveTab('collections')} className="back-btn">
+            <FaArrowLeft />
+          </button>
+          <h2>Subcollections - {selectedCollection?.name}</h2>
+        </div>
+        <button onClick={() => setEditing({ type: 'subcollections', data: {} })} className="add-btn">
+          <FaPlus />
+        </button>
       </div>
       <div className="table-container">
         <table>
@@ -415,7 +633,9 @@ function App() {
                   <td>{subcollection.due_date ? new Date(subcollection.due_date).toLocaleDateString() : 'N/A'}</td>
                   <td>
                     <button onClick={() => {
+                      console.log('View subcollection clicked:', subcollection);
                       setSelectedSubcollection(subcollection);
+                      console.log('Setting active tab to obligations');
                       setActiveTab('obligations');
                     }} className="view-btn">👁️ View</button>
                     <button onClick={() => setEditing({ type: 'subcollections', data: subcollection })} className="edit-btn">✏️ Edit</button>
@@ -435,52 +655,21 @@ function App() {
   )
 
   const renderObligations = () => (
-    <div className="data-section">
-      <div className="section-header">
-        <h2>💰 Member Obligations - {selectedSubcollection?.name}</h2>
-        <button onClick={() => setEditing({ type: 'obligations', data: {} })} className="add-btn">+ Add New Obligation</button>
-      </div>
-      <div className="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Member</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {memberObligations
-              .filter(ob => ob.subcollection?.id === selectedSubcollection?.id)
-              .map(obligation => (
-                <tr key={obligation.id}>
-                  <td>#{obligation.id}</td>
-                  <td>{obligation.member?.name || 'N/A'}</td>
-                  <td>₹{obligation.amount}</td>
-                  <td>
-                    <span className={`status-badge ${obligation.paid_status}`}>
-                      {obligation.paid_status}
-                    </span>
-                  </td>
-                  <td>{obligation.created_at ? new Date(obligation.created_at).toLocaleDateString() : 'N/A'}</td>
-                  <td>
-                    <button onClick={() => setEditing({ type: 'obligations', data: obligation })} className="edit-btn">✏️ Edit</button>
-                    <button onClick={() => deleteItem('obligations', obligation.id)} className="delete-btn">🗑️ Delete</button>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-        {memberObligations.filter(ob => ob.subcollection?.id === selectedSubcollection?.id).length === 0 && (
-          <div className="empty-state">
-            <p>No obligations found for this subcollection.</p>
-          </div>
-        )}
-      </div>
-    </div>
+    <Obligations 
+      memberObligations={memberObligations}
+      selectedSubcollection={selectedSubcollection}
+      members={members}
+      setEditing={setEditing}
+      deleteItem={deleteItem}
+      handleAddObligation={() => setEditing({ type: 'obligations', data: {} })}
+      handleEditObligation={(obligation) => setEditing({ type: 'obligations', data: obligation })}
+      handlePayObligation={handlePayObligation}
+      handleAddBulkObligation={handleAddBulkObligation}
+      setSelectedSubcollection={setSelectedSubcollection}
+      setSelectedCollection={setSelectedCollection}
+      loadDataForTab={loadDataForTab}
+      setActiveTab={setActiveTab}
+    />
   )
 
   const renderMemberDetails = () => {
@@ -488,8 +677,12 @@ function App() {
       return (
         <div className="data-section">
           <div className="section-header">
-            <h2>👤 Member Details</h2>
-            <button onClick={() => setActiveTab('members')} className="back-btn">← Back to Members</button>
+            <div className="header-content">
+              <button onClick={() => setActiveTab('members')} className="back-btn">
+                <FaArrowLeft />
+              </button>
+              <h2>Member Details</h2>
+            </div>
           </div>
           <div className="empty-state">
             <p>No member selected.</p>
@@ -514,8 +707,12 @@ function App() {
     return (
       <div className="data-section">
         <div className="section-header">
-          <h2>👤 Member Details</h2>
-          <button onClick={() => setActiveTab('members')} className="back-btn">← Back to Members</button>
+          <div className="header-content">
+            <button onClick={() => setActiveTab('members')} className="back-btn">
+              <FaArrowLeft />
+            </button>
+            <h2>Member Details</h2>
+          </div>
         </div>
         <MemberDetails member={selectedMember} house={memberHouse} area={houseArea} />
       </div>
@@ -524,7 +721,9 @@ function App() {
 
   const renderDataManagement = () => (
     <div className="data-section">
-      <h2>💾 Data Management</h2>
+      <div className="section-header">
+        <h2>💾 Data Management</h2>
+      </div>
       <div className="data-management-content">
         <div className="data-action-card">
           <h3>📤 Export Data</h3>
@@ -663,7 +862,9 @@ function App() {
           <main>
             {activeTab === 'dashboard' && (
               <div className="data-section">
-                <h2>📊 Dashboard</h2>
+                <div className="section-header">
+                  <h2>📊 Dashboard</h2>
+                </div>
                 <div className="dashboard-stats">
                   <div className="stat-card">
                     <h3>{members.length}</h3>
@@ -693,6 +894,12 @@ function App() {
             {activeTab === 'obligations' && renderObligations()}
             {activeTab === 'data' && renderDataManagement()}
             {renderForm()}
+            <PaymentConfirmModal
+              isOpen={isPaymentModalOpen}
+              onClose={handlePaymentModalClose}
+              onConfirm={handlePaymentConfirm}
+              obligation={obligationToPay}
+            />
           </main>
         </div>
       </div>

@@ -46,18 +46,6 @@ const Dashboard = () => {
             <p>Areas</p>
           </div>
           <div className="stat-card">
-            <h3>{stats.collections_count}</h3>
-            <p>Collections</p>
-          </div>
-          <div className="stat-card">
-            <h3>{stats.subcollections_count}</h3>
-            <p>Subcollections</p>
-          </div>
-          <div className="stat-card">
-            <h3>{stats.obligations_count}</h3>
-            <p>Obligations</p>
-          </div>
-          <div className="stat-card">
             <h3>{stats.pending_todos_count}/{stats.todos_count}</h3>
             <p>Pending Todos</p>
           </div>
