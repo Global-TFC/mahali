@@ -9,6 +9,17 @@ A comprehensive community management application built with Django (backend) and
 - Data export/import functionality with progress indicators
 - Standalone desktop application with integrated backend
 
+## Installation Guide
+
+For detailed installation instructions, troubleshooting tips, and common issues, please refer to our [Installation Guide](INSTALLATION_GUIDE.md).
+
+## Features
+
+- Modern, responsive UI with light, dim, and dark themes
+- Community management with areas, houses, members, and collections
+- Data export/import functionality with progress indicators
+- Standalone desktop application with integrated backend
+
 ## Installation
 
 ### Prerequisites
