@@ -61,12 +61,28 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "public/logo.png"
+      "icon": "public/logo.png",
+      "extraFiles": [
+        "node_modules/electron/dist/ffmpeg.dll",
+        "node_modules/electron/dist/d3dcompiler_47.dll",
+        "node_modules/electron/dist/libEGL.dll",
+        "node_modules/electron/dist/libGLESv2.dll",
+        "node_modules/electron/dist/vk_swiftshader.dll",
+        "node_modules/electron/dist/vulkan-1.dll"
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
-    "afterPack": "./scripts/copy-backend.cjs"
+    "afterPack": "./scripts/copy-backend.cjs",
+    "extraFiles": [
+      "node_modules/electron/dist/ffmpeg.dll",
+      "node_modules/electron/dist/d3dcompiler_47.dll",
+      "node_modules/electron/dist/libEGL.dll",
+      "node_modules/electron/dist/libGLESv2.dll",
+      "node_modules/electron/dist/vk_swiftshader.dll",
+      "node_modules/electron/dist/vulkan-1.dll"
+    ]
   }
 }

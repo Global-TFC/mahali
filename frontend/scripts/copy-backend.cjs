@@ -62,7 +62,31 @@ module.exports = async function(context) {
       console.log(`Frontend dist directory not found: ${frontendDistSource}`);
     }
 
-    console.log('Backend files copied successfully!');
+    // Copy required DLL files to the application directory
+    const electronDllSource = path.join(process.cwd(), 'node_modules', 'electron', 'dist');
+    const dllFiles = [
+      'ffmpeg.dll',
+      'd3dcompiler_47.dll',
+      'libEGL.dll',
+      'libGLESv2.dll',
+      'vk_swiftshader.dll',
+      'vulkan-1.dll'
+    ];
+
+    console.log('Copying required DLL files...');
+    dllFiles.forEach(dllFile => {
+      const srcPath = path.join(electronDllSource, dllFile);
+      const destPath = path.join(appOutDir, dllFile);
+
+      if (fs.existsSync(srcPath)) {
+        fs.copyFileSync(srcPath, destPath);
+        console.log(`Copied DLL file: ${dllFile}`);
+      } else {
+        console.log(`DLL file not found: ${srcPath}`);
+      }
+    });
+
+    console.log('Backend files and DLLs copied successfully!');
   } catch (error) {
     console.error('Error in afterPack script:', error);
     throw error;
