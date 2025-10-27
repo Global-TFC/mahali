@@ -7,6 +7,8 @@ import {
   FaUsers, 
   FaFolder, 
   FaDatabase, 
+  FaFire, // Firebase icon
+  FaCog, // Settings icon
   FaSun, 
   FaMoon, 
   FaAdjust 
@@ -28,13 +30,29 @@ const Sidebar = ({
 
   useEffect(() => {
     loadAppSettings();
+    
+    // Listen for settings updates from other components
+    const handleSettingsUpdate = (event) => {
+      console.log('Sidebar: Settings updated:', event.detail);
+      setAppSettings(event.detail);
+      setTheme(event.detail.theme);
+    };
+    
+    window.addEventListener('settingsUpdated', handleSettingsUpdate);
+    
+    // Cleanup listener on component unmount
+    return () => {
+      window.removeEventListener('settingsUpdated', handleSettingsUpdate);
+    };
   }, []);
 
   const loadAppSettings = async () => {
     try {
       const response = await settingsAPI.getAll();
+      console.log('Sidebar: Loaded settings:', response.data);
       if (response.data.length > 0) {
         const settings = response.data[0];
+        console.log('Sidebar: Setting app settings:', settings);
         setAppSettings(settings);
         setTheme(settings.theme); // This should update the parent component's state
       } else {
@@ -64,6 +82,9 @@ const Sidebar = ({
       }
       setAppSettings(updatedSettings);
       setTheme(newTheme); // Update parent component's state
+      
+      // Dispatch a custom event to notify other components about the settings update
+      window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: updatedSettings }));
     } catch (error) {
       console.error('Failed to save theme setting:', error);
     }
@@ -77,11 +98,13 @@ const Sidebar = ({
     if (location.pathname === '/' || location.pathname === '/dashboard') return 'dashboard';
     if (location.pathname.startsWith('/areas')) return 'areas';
     if (location.pathname.startsWith('/houses')) return 'houses';
+    if (location.pathname.startsWith('/member-request')) return 'member-request';
     if (location.pathname.startsWith('/members')) return 'members';
     if (location.pathname.startsWith('/collections')) return 'collections';
     if (location.pathname.startsWith('/subcollections')) return 'subcollections';
     if (location.pathname.startsWith('/obligations')) return 'obligations';
     if (location.pathname.startsWith('/data')) return 'data';
+    if (location.pathname.startsWith('/settings')) return 'settings';
     return 'dashboard';
   };
 
@@ -95,6 +118,9 @@ const Sidebar = ({
         break;
       case 'houses':
         navigate('/houses');
+        break;
+      case 'member-request':
+        navigate('/member-request');
         break;
       case 'members':
         navigate('/members');
@@ -111,12 +137,20 @@ const Sidebar = ({
       case 'data':
         navigate('/data');
         break;
+      case 'settings':
+        navigate('/settings');
+        break;
       default:
         navigate('/dashboard');
     }
   };
 
   const activeTab = getActiveTab();
+  
+  // Check if Firebase is configured
+  const isFirebaseConfigured = appSettings && appSettings.firebase_config && appSettings.firebase_config.trim() !== '';
+  console.log('Sidebar: appSettings:', appSettings);
+  console.log('Sidebar: isFirebaseConfigured:', isFirebaseConfigured);
 
   return (
     <aside className="sidebar">
@@ -152,6 +186,17 @@ const Sidebar = ({
           <FaHouseUser className="tab-icon" />
           <span>Houses</span>
         </button>
+        {/* Member Request tab - only show if Firebase is configured */}
+        {isFirebaseConfigured && (
+          <button 
+            className={activeTab === 'member-request' ? 'active' : ''}
+            onClick={() => handleTabChange('member-request')}
+            disabled={disabled}
+          >
+            <FaFire className="tab-icon" />
+            <span>Member Request</span>
+          </button>
+        )}
         <button 
           className={activeTab === 'members' ? 'active' : ''}
           onClick={() => handleTabChange('members')}
@@ -175,6 +220,14 @@ const Sidebar = ({
         >
           <FaDatabase className="tab-icon" />
           <span>Data Management</span>
+        </button>
+        <button 
+          className={activeTab === 'settings' ? 'active' : ''}
+          onClick={() => handleTabChange('settings')}
+          disabled={disabled}
+        >
+          <FaCog className="tab-icon" />
+          <span>Settings</span>
         </button>
       </nav>
       

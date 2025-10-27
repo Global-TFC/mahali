@@ -198,6 +198,7 @@ class AppSettings(models.Model):
     ]
     
     theme = models.CharField(max_length=10, choices=THEME_CHOICES, default='light')
+    firebase_config = models.TextField(blank=True, null=True, help_text="Firebase configuration JSON")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

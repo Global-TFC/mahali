@@ -466,12 +466,35 @@ class AppSettingsViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         # Return only the latest settings
         queryset = AppSettings.objects.all().order_by('-updated_at')
+        print(f"=== DEBUG: AppSettingsViewSet.list ===")
+        print(f"Queryset count: {queryset.count()}")
         if queryset.exists():
-            serializer = self.get_serializer(queryset.first())
-            return Response([serializer.data])
+            instance = queryset.first()
+            print(f"Instance ID: {instance.id}")
+            print(f"Instance theme: {instance.theme}")
+            print(f"Instance firebase_config: {repr(instance.firebase_config)}")
+            print(f"Instance updated_at: {instance.updated_at}")
+            serializer = self.get_serializer(instance)
+            data = serializer.data
+            print(f"Serialized data: {data}")
+            return Response([data])
         else:
             # Return empty array if no settings exist
+            print("No settings found")
             return Response([])
+    
+    def update(self, request, *args, **kwargs):
+        # Use the default update behavior but ensure firebase_config is handled
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        # Ensure firebase_config is included in the response
+        data = serializer.data
+        data['firebase_config'] = instance.firebase_config
+        return Response(data)
 
 class DashboardViewSet(viewsets.ViewSet):
     """

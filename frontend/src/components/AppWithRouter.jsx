@@ -15,6 +15,8 @@ import DataManagement from './DataManagement'
 import EditForm from './EditForm'
 import MemberModal from './MemberModal'
 import DeleteConfirmModal from './DeleteConfirmModal'
+import FirebaseDataImproved from './FirebaseDataImproved'
+import Settings from './Settings'
 import './App.css'
 
 function AppWithRouter() {
@@ -438,6 +440,7 @@ function AppWithRouter() {
                   loadDataForTab={loadDataForTab}
                 />
               } />
+              <Route path="/member-request" element={<FirebaseDataImproved />} /> {/* Member Request route */}
               <Route path="/collections" element={
                 <Collections 
                   collections={collections}
@@ -495,6 +498,7 @@ function AppWithRouter() {
                   disabled={isBusy}
                 />
               } />
+              <Route path="/settings" element={<Settings />} /> {/* Settings route */}
             </Routes>
             
             {editing && (

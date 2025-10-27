@@ -125,6 +125,8 @@ class TodoSerializer(serializers.ModelSerializer):
 
 
 class AppSettingsSerializer(serializers.ModelSerializer):
+    firebase_config = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    
     class Meta:
         model = AppSettings
         fields = '__all__'
