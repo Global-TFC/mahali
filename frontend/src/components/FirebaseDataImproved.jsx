@@ -35,6 +35,7 @@ const FirebaseDataImproved = () => {
   const [motherSearchResults, setMotherSearchResults] = useState({});
   const [showFatherSearch, setShowFatherSearch] = useState({});
   const [showMotherSearch, setShowMotherSearch] = useState({});
+  const [showMembersModal, setShowMembersModal] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState(new Set()); // For multi-select
   const [allMembers, setAllMembers] = useState([]); // Add this line to store all members
 
@@ -234,38 +235,55 @@ const FirebaseDataImproved = () => {
     setHouseData({
       house_name: item.houseName || item.house_name || '',
       family_name: item.familyName || item.family_name || '',
-      location_name: item.locationName || item.location_name || '',
+      location_name: item.locationName || item.location || item.location_name || '',
       area: item.area || '',
       address: item.address || '',
-      road_name: item.road_name || item.roadName || ''
+      road_name: item.roadName || item.road_name || ''
     });
     
     // Initialize members data with Firebase data
     const firebaseMembers = item.members || [];
     const initializedMembers = firebaseMembers.map((member, index) => ({
       id: Date.now() + index, // Temporary ID
-      name: member.name || '',
+      name: member.fullName || member.name || '',
       surname: member.surname || '',
-      date_of_birth: member.date_of_birth || '',
-      father_name: member.father_name || member.fatherName || '',
-      father_surname: member.father_surname || member.fatherSurname || '',
-      mother_name: member.mother_name || member.motherName || '',
-      mother_surname: member.mother_surname || member.motherSurname || '',
+      date_of_birth: member.dob || member.date_of_birth || '',
+      father_name: member.fatherName || member.father_name || '',
+      father_surname: member.fatherSurname || member.father_surname || '',
+      mother_name: member.motherName || member.mother_name || '',
+      mother_surname: member.motherSurname || member.mother_surname || '',
       phone: member.phone || '',
       whatsapp: member.whatsapp || '',
-      aadhar: member.aadhar || '',
+      aadhar: member.aadhaar || member.aadhar || '',
       status: member.status || 'live',
       father_id: member.father_id || null,
       mother_id: member.mother_id || null
     }));
     
+    // Auto-select all members by default since they came from Firebase
+    const allMemberIds = initializedMembers.map(member => member.id);
+    setSelectedMembers(new Set(allMemberIds));
+    
     setMembers(initializedMembers);
-    setGuardianId(initializedMembers.length > 0 ? initializedMembers[0].id : null);
+    
+    // Set guardian based on primaryMember data if available
+    let guardianIndex = 0; // Default to first member
+    if (item.primaryMember && item.primaryMember.name) {
+      // Try to find the member that matches the primary member
+      const primaryMemberName = item.primaryMember.name.toLowerCase();
+      const matchingMemberIndex = initializedMembers.findIndex(member => 
+        member.name.toLowerCase() === primaryMemberName || 
+        `${member.name} ${member.surname}`.toLowerCase() === primaryMemberName
+      );
+      if (matchingMemberIndex !== -1) {
+        guardianIndex = matchingMemberIndex;
+      }
+    }
+    setGuardianId(initializedMembers[guardianIndex]?.id || null);
     // Reset states
     setHouseAdded(false);
     setCreatedHouse(null);
     setActiveTab('house');
-    setSelectedMembers(new Set());
   };
 
   const closeModal = () => {
@@ -584,10 +602,14 @@ const FirebaseDataImproved = () => {
       return <div className="no-data">No data found in Firebase collection</div>;
     }
 
-    // Get all unique keys for table headers
+    // Get all unique keys for table headers (excluding 'id' and 'members')
     const allKeys = new Set();
     firebaseData.forEach(item => {
-      Object.keys(item).forEach(key => allKeys.add(key));
+      Object.keys(item).forEach(key => {
+        if (key !== 'id' && key !== 'members') { // Exclude 'id' and 'members' columns
+          allKeys.add(key);
+        }
+      });
     });
 
     return (
@@ -595,28 +617,57 @@ const FirebaseDataImproved = () => {
         <table className="data-table">
           <thead>
             <tr>
-              <th>Action</th>
+              <th>Family Name</th>
+              <th>House Name</th>
+              <th>Location</th>
               {Array.from(allKeys).map(key => (
                 <th key={key}>{key}</th>
               ))}
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {firebaseData.map((item, index) => (
               <tr key={item.id || index}>
-                <td>
-                  <button 
-                    className="action-btn"
-                    onClick={() => handleRowClick(item)}
-                  >
-                    Process
-                  </button>
-                </td>
+                <td>{item.familyName || item.family_name || 'N/A'}</td>
+                <td>{item.houseName || item.house_name || 'N/A'}</td>
+                <td>{item.locationName || item.location_name || 'N/A'}</td>
                 {Array.from(allKeys).map(key => (
                   <td key={key}>
-                    {typeof item[key] === 'object' ? JSON.stringify(item[key]) : String(item[key] || '')}
+                    {renderTableCell(item[key], key)}
                   </td>
                 ))}
+                <td>
+                  <div className="actions-container">
+                    <button 
+                      className="action-btn"
+                      onClick={() => handleRowClick(item)}
+                    >
+                      Process
+                    </button>
+                    <button 
+                      className="view-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedItem(item);
+                        setShowMembersModal(true);
+                      }}
+                    >
+                      View Members ({(item.members || []).length})
+                    </button>
+                    <button 
+                      className="delete-btn"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Are you sure you want to delete this item from Firebase?')) {
+                          await deleteFirebaseItem(item);
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -625,19 +676,229 @@ const FirebaseDataImproved = () => {
     );
   };
 
-  return (
-    <div className="firebase-data-section">
-      <h2>🔥 Member Requests</h2>
-      {firebaseConfig ? (
-        <>
-          <div className="firebase-header">
-            <h3>Families Collection Data</h3>
-            <button onClick={loadFirebaseData} disabled={loading} className="export-btn">
-              {loading ? 'Refreshing...' : 'Refresh Data'}
+  // Function to delete item from Firebase
+  const deleteFirebaseItem = async (item) => {
+    try {
+      // Dynamically import Firebase SDKs only when needed
+      const { initializeApp } = await import('firebase/app');
+      const { getFirestore, doc, deleteDoc } = await import('firebase/firestore');
+      
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
+      
+      // Delete the document
+      await deleteDoc(doc(db, 'families', item.id));
+      
+      // Reload the data
+      loadFirebaseData();
+      
+      console.log('Successfully deleted item from Firebase');
+    } catch (error) {
+      console.error('Error deleting item from Firebase:', error);
+      setError('Failed to delete item from Firebase: ' + error.message);
+    }
+  };
+
+  // Render member details in a clean format
+  // Render table cell content with special handling for member data
+  const renderTableCell = (value, key) => {
+    // Check if this is a member object (could be a parsed object or a JSON string)
+    let memberData = null;
+    
+    if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
+      // Try to parse JSON string
+      try {
+        memberData = JSON.parse(value);
+      } catch (e) {
+        // If parsing fails, treat as regular string
+        return String(value || '');
+      }
+    } else if (typeof value === 'object' && value !== null) {
+      // Already an object
+      memberData = value;
+    }
+    
+    // Check if this looks like member data
+    if (memberData && (memberData.name || memberData.phone || memberData.whatsapp)) {
+      return (
+        <div className="member-table-cell">
+          <div className="member-info">
+            <div className="member-avatar-small">
+              {memberData.photoURL ? (
+                <img src={memberData.photoURL} alt="" className="member-image" />
+              ) : (
+                <div className="member-icon">{memberData.name ? memberData.name.charAt(0).toUpperCase() : 'U'}</div>
+              )}
+            </div>
+            <div className="member-names">
+              <div className="member-name">{memberData.name || 'Unknown'}</div>
+              {memberData.surname && <div className="member-surname">{memberData.surname}</div>}
+            </div>
+          </div>
+          <div className="member-contact">
+            {memberData.phone && (
+              <button 
+                className="copy-btn-small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(memberData.phone);
+                }}
+                title="Copy phone number"
+              >
+                📋
+              </button>
+            )}
+            {memberData.whatsapp && (
+              <button 
+                className="whatsapp-btn-small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`https://wa.me/${memberData.whatsapp}`, '_blank');
+                }}
+                title="Message on WhatsApp"
+              >
+                💬
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    // For other data types, render normally
+    return typeof value === 'object' ? JSON.stringify(value) : String(value || '');
+  };
+
+  const renderMemberDetails = (member) => {
+    return (
+      <div className="member-detail-card">
+        <div className="member-basic-info">
+          <div className="member-avatar-large">
+            {member.name ? member.name.charAt(0).toUpperCase() : 'U'}
+          </div>
+          <div className="member-identity">
+            <div className="member-full-name">
+              {member.name || 'Unknown Member'}
+              {member.surname && ` ${member.surname}`}
+            </div>
+            {(member.phone || member.whatsapp) && (
+              <div className="member-contact-info">
+                {member.phone && (
+                  <span className="contact-item">
+                    📞 {member.phone}
+                  </span>
+                )}
+                {member.whatsapp && (
+                  <span className="contact-item">
+                    💬 {member.whatsapp}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="member-additional-info">
+          {member.date_of_birth && (
+            <div className="info-row">
+              <span className="info-label">📅 Date of Birth:</span>
+              <span className="info-value">{member.date_of_birth}</span>
+            </div>
+          )}
+          
+          {(member.father_name || member.father_surname) && (
+            <div className="info-row">
+              <span className="info-label">👨 Father:</span>
+              <span className="info-value">
+                {member.father_name} {member.father_surname || ''}
+              </span>
+            </div>
+          )}
+          
+          {(member.mother_name || member.mother_surname) && (
+            <div className="info-row">
+              <span className="info-label">👩 Mother:</span>
+              <span className="info-value">
+                {member.mother_name} {member.mother_surname || ''}
+              </span>
+            </div>
+          )}
+          
+          {member.aadhar && (
+            <div className="info-row">
+              <span className="info-label">💳 Aadhar:</span>
+              <span className="info-value">{member.aadhar}</span>
+            </div>
+          )}
+          
+          <div className="info-row">
+            <span className="info-label">📊 Status:</span>
+            <span className="info-value">
+              <span className={`status-badge status-${member.status || 'live'}`}>
+                {member.status || 'live'}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render members modal
+  const renderMembersModal = () => {
+    if (!showMembersModal || !selectedItem) return null;
+    
+    const members = selectedItem.members || [];
+    
+    return (
+      <div className="modal-overlay">
+        <div className="members-modal-content">
+          <div className="modal-header">
+            <h2>Family Members</h2>
+            <button className="close-btn" onClick={() => setShowMembersModal(false)}>×</button>
+          </div>
+          <div className="modal-body">
+            <div className="family-info">
+              <h3>{selectedItem.familyName || selectedItem.family_name || 'Unknown Family'}</h3>
+              <p>House: {selectedItem.houseName || selectedItem.house_name || 'N/A'}</p>
+            </div>
+            <div className="members-list-container">
+              {members.length > 0 ? (
+                members.map((member, index) => (
+                  <div key={index} className="member-card">
+                    {renderMemberDetails(member)}
+                  </div>
+                ))
+              ) : (
+                <div className="no-members">No members found for this family</div>
+              )}
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button className="cancel-btn" onClick={() => setShowMembersModal(false)}>
+              Close
             </button>
           </div>
-          {renderData()}
-        </>
+        </div>
+      </div>
+    );
+  };
+
+
+  return (
+    <div className="data-section">
+      <div className="section-header">
+        <h2>🔥 Member Requests</h2>
+        <div className="header-actions">
+          <button onClick={loadFirebaseData} disabled={loading} className="reload-btn">
+            {loading ? 'Refreshing...' : 'Refresh Data'}
+          </button>
+        </div>
+      </div>
+      
+      {firebaseConfig ? (
+        renderData()
       ) : (
         <div className="no-firebase-config">
           <p>Firebase is not configured. Please add Firebase configuration in Settings.</p>
@@ -647,7 +908,7 @@ const FirebaseDataImproved = () => {
       {/* Modal for processing Firebase data */}
       {isModalOpen && selectedItem && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content modal-content-wide">
             <div className="modal-header">
               <h2>Process Family Data</h2>
               <button className="close-btn" onClick={closeModal}>×</button>
@@ -778,13 +1039,6 @@ const FirebaseDataImproved = () => {
                     <h3>Add Family Members</h3>
                   </div>
                   
-                  {/* Add Member Button */}
-                  <div className="add-member-button-container">
-                    <button className="add-member-btn" onClick={addMember}>
-                      + Add Member
-                    </button>
-                  </div>
-                  
                   {/* Search for members */}
                   <div className="members-search">
                     <input
@@ -794,17 +1048,26 @@ const FirebaseDataImproved = () => {
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="form-input search-input"
                     />
+                    <p className="helper-text">Search and select members to add to the household. All members are pre-selected by default.</p>
                   </div>
                   
-                  {/* Select All / Deselect All Buttons */}
-                  <div className="selection-buttons">
-                    <button className="select-all-btn" onClick={selectAllMembers}>
-                      Select All
-                    </button>
-                    <button className="deselect-all-btn" onClick={deselectAllMembers}>
-                      Deselect All
-                    </button>
+                  {/* Action Buttons Row */}
+                  <div className="members-action-row">
+                    <div className="selection-buttons">
+                      <button className="select-all-btn small-btn" onClick={selectAllMembers}>
+                        Select All
+                      </button>
+                      <button className="deselect-all-btn small-btn" onClick={deselectAllMembers}>
+                        Deselect All
+                      </button>
+                    </div>
+                    <div className="add-member-container">
+                      <button className="add-member-btn" onClick={addMember}>
+                        + Add New Member
+                      </button>
+                    </div>
                   </div>
+                  <p className="helper-text">Use the checkboxes to select members to add. Click "Set as Guardian" to designate the primary household member.</p>
                   
                   <div className="members-list-container">
                     <div className="members-list">
@@ -851,105 +1114,150 @@ const FirebaseDataImproved = () => {
                           </div>
                           
                           <div className="member-details-grid">
-                            <div className="form-group">
-                              <label>Name *</label>
-                              <input
-                                type="text"
-                                value={member.name}
-                                onChange={(e) => updateMember(member.id, 'name', e.target.value)}
-                                className="form-input"
-                                placeholder="Enter name"
-                              />
+                            {/* Name, Surname, Status, and Date of Birth */}
+                            <div className="form-row">
+                              <div className="form-group">
+                                <label className="required">Full Name</label>
+                                <input
+                                  type="text"
+                                  value={member.name}
+                                  onChange={(e) => updateMember(member.id, 'name', e.target.value)}
+                                  className="form-input"
+                                  placeholder="Enter member's full name"
+                                />
+                                <span className="helper-text">Enter the member's complete given name(s)</span>
+                              </div>
+                              
+                              <div className="form-group">
+                                <label>Family Surname</label>
+                                <input
+                                  type="text"
+                                  value={member.surname}
+                                  onChange={(e) => updateMember(member.id, 'surname', e.target.value)}
+                                  className="form-input"
+                                  placeholder="Enter family surname"
+                                />
+                                <span className="helper-text">Enter the family's shared surname</span>
+                              </div>
+                              
+                              <div className="form-group">
+                                <label>Status</label>
+                                <select
+                                  value={member.status}
+                                  onChange={(e) => updateMember(member.id, 'status', e.target.value)}
+                                  className="form-input select-input"
+                                >
+                                  <option value="live">Live</option>
+                                  <option value="dead">Deceased</option>
+                                  <option value="terminated">Terminated</option>
+                                </select>
+                                <span className="helper-text">Select the current status of the member</span>
+                              </div>
+                              
+                              <div className="form-group">
+                                <label>Date of Birth</label>
+                                <input
+                                  type="date"
+                                  value={member.date_of_birth}
+                                  onChange={(e) => updateMember(member.id, 'date_of_birth', e.target.value)}
+                                  className="form-input"
+                                />
+                                <span className="helper-text">Select the member's date of birth</span>
+                              </div>
                             </div>
                             
-                            <div className="form-group">
-                              <label>Surname</label>
-                              <input
-                                type="text"
-                                value={member.surname}
-                                onChange={(e) => updateMember(member.id, 'surname', e.target.value)}
-                                className="form-input"
-                                placeholder="Enter surname"
-                              />
+                            {/* Aadhar, Phone, and WhatsApp */}
+                            <div className="form-row">
+                              <div className="form-group">
+                                <label>Aadhar Number</label>
+                                <input
+                                  type="text"
+                                  value={member.aadhar}
+                                  onChange={(e) => updateMember(member.id, 'aadhar', e.target.value)}
+                                  className="form-input"
+                                  placeholder="12-digit Aadhar number"
+                                />
+                                <span className="helper-text">Enter 12-digit Aadhar card number</span>
+                              </div>
+                              
+                              <div className="form-group">
+                                <label>Phone Number</label>
+                                <input
+                                  type="tel"
+                                  value={member.phone}
+                                  onChange={(e) => updateMember(member.id, 'phone', e.target.value)}
+                                  className="form-input"
+                                  placeholder="10-digit phone number"
+                                />
+                                <span className="helper-text">Enter 10-digit mobile number</span>
+                              </div>
+                              
+                              <div className="form-group">
+                                <label>WhatsApp Number</label>
+                                <input
+                                  type="tel"
+                                  value={member.whatsapp}
+                                  onChange={(e) => updateMember(member.id, 'whatsapp', e.target.value)}
+                                  className="form-input"
+                                  placeholder="10-digit WhatsApp number"
+                                />
+                                <span className="helper-text">Enter 10-digit WhatsApp number (if different)</span>
+                              </div>
+                              
+                              <div className="form-group">
+                                {/* Empty placeholder to maintain grid */}
+                              </div>
                             </div>
                             
-                            <div className="form-group">
-                              <label>Status</label>
-                              <select
-                                value={member.status}
-                                onChange={(e) => updateMember(member.id, 'status', e.target.value)}
-                                className="form-input"
-                              >
-                                <option value="live">Live</option>
-                                <option value="dead">Dead</option>
-                                <option value="terminated">Terminated</option>
-                              </select>
-                            </div>
-                            
-                            <div className="form-group">
-                              <label>Date of Birth</label>
-                              <input
-                                type="date"
-                                value={member.date_of_birth}
-                                onChange={(e) => updateMember(member.id, 'date_of_birth', e.target.value)}
-                                className="form-input"
-                              />
-                            </div>
-                            
-                            <div className="form-group">
-                              <label>Aadhar</label>
-                              <input
-                                type="text"
-                                value={member.aadhar}
-                                onChange={(e) => updateMember(member.id, 'aadhar', e.target.value)}
-                                className="form-input"
-                                placeholder="Enter Aadhar number"
-                              />
-                            </div>
-                            
-                            <div className="form-group">
-                              <label>Phone</label>
-                              <input
-                                type="text"
-                                value={member.phone}
-                                onChange={(e) => updateMember(member.id, 'phone', e.target.value)}
-                                className="form-input"
-                                placeholder="Enter phone number"
-                              />
-                            </div>
-                            
-                            <div className="form-group">
-                              <label>WhatsApp</label>
-                              <input
-                                type="text"
-                                value={member.whatsapp}
-                                onChange={(e) => updateMember(member.id, 'whatsapp', e.target.value)}
-                                className="form-input"
-                                placeholder="Enter WhatsApp number"
-                              />
-                            </div>
-                            
-                            {/* Father Information */}
-                            <div className="form-group">
-                              <label>Father Name</label>
-                              <input
-                                type="text"
-                                value={member.father_name}
-                                onChange={(e) => updateMember(member.id, 'father_name', e.target.value)}
-                                className="form-input"
-                                placeholder="Enter father's name"
-                              />
-                            </div>
-                            
-                            <div className="form-group">
-                              <label>Father Surname</label>
-                              <input
-                                type="text"
-                                value={member.father_surname}
-                                onChange={(e) => updateMember(member.id, 'father_surname', e.target.value)}
-                                className="form-input"
-                                placeholder="Enter father's surname"
-                              />
+                            {/* Father and Mother Information */}
+                            <div className="form-row">
+                              <div className="form-group">
+                                <label>Father's Full Name</label>
+                                <input
+                                  type="text"
+                                  value={member.father_name}
+                                  onChange={(e) => updateMember(member.id, 'father_name', e.target.value)}
+                                  className="form-input"
+                                  placeholder="Enter father's full name"
+                                />
+                                <span className="helper-text">Enter father's complete given name(s)</span>
+                              </div>
+                              
+                              <div className="form-group">
+                                <label>Father's Surname</label>
+                                <input
+                                  type="text"
+                                  value={member.father_surname}
+                                  onChange={(e) => updateMember(member.id, 'father_surname', e.target.value)}
+                                  className="form-input"
+                                  placeholder="Enter father's family surname"
+                                />
+                                <span className="helper-text">Enter father's family surname</span>
+                              </div>
+                              
+                              <div className="form-group">
+                                <label>Mother's Full Name</label>
+                                <input
+                                  type="text"
+                                  value={member.mother_name}
+                                  onChange={(e) => updateMember(member.id, 'mother_name', e.target.value)}
+                                  className="form-input"
+                                  placeholder="Enter mother's full name"
+                                />
+                                <span className="helper-text">Enter mother's complete given name(s)</span>
+                              </div>
+                              
+                              <div className="form-group">
+                                <label>Mother's Surname</label>
+                                <input
+                                  type="text"
+                                  value={member.mother_surname}
+                                  onChange={(e) => updateMember(member.id, 'mother_surname', e.target.value)}
+                                  className="form-input"
+                                  placeholder="Enter mother's family surname"
+                                />
+                                <span className="helper-text">Enter mother's family surname</span>
+                              </div>
                             </div>
                             
                             {/* Father Selection with Search */}
@@ -1017,29 +1325,6 @@ const FirebaseDataImproved = () => {
                                 </div>
                               </div>
                             )}
-                            
-                            {/* Mother Information */}
-                            <div className="form-group">
-                              <label>Mother Name</label>
-                              <input
-                                type="text"
-                                value={member.mother_name}
-                                onChange={(e) => updateMember(member.id, 'mother_name', e.target.value)}
-                                className="form-input"
-                                placeholder="Enter mother's name"
-                              />
-                            </div>
-                            
-                            <div className="form-group">
-                              <label>Mother Surname</label>
-                              <input
-                                type="text"
-                                value={member.mother_surname}
-                                onChange={(e) => updateMember(member.id, 'mother_surname', e.target.value)}
-                                className="form-input"
-                                placeholder="Enter mother's surname"
-                              />
-                            </div>
                             
                             {/* Mother Selection with Search */}
                             <div className="form-group">
@@ -1150,6 +1435,9 @@ const FirebaseDataImproved = () => {
           </div>
         </div>
       )}
+      
+      {/* Members Modal */}
+      {renderMembersModal()}
     </div>
   );
 };
