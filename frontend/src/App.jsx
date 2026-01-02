@@ -212,6 +212,12 @@ function App() {
       obligations: obligationAPI, 
       events: eventAPI 
     }
+    
+    // For obligations, use partialUpdate to allow partial updates
+    if (type === 'obligations') {
+      return await obligationAPI.partialUpdate(id, data)
+    }
+    
     return await apis[type].update(id, data)
   }
 
@@ -791,20 +797,27 @@ function App() {
         );
       case 'obligations':
         // For obligations, we need to ensure we have a selected subcollection
-        if (!selectedSubcollection) {
+        // But if editing, we can use the subcollection from the obligation data
+        const obligationSubcollection = data?.subcollection || selectedSubcollection;
+        if (!obligationSubcollection) {
+          console.warn('No subcollection available for obligation modal');
           return null;
         }
         return (
           <ObligationModal 
             isOpen={!!editing}
             onClose={() => setEditing(null)} 
-            onSubmit={(formData) => handleSubmit('obligations', {
-              ...formData,
-              subcollection: selectedSubcollection.id
-            })}
+            onSubmit={(formData) => {
+              const submitData = {
+                ...formData,
+                subcollection: obligationSubcollection.id || obligationSubcollection
+              };
+              console.log('Submitting obligation data:', submitData);
+              return handleSubmit('obligations', submitData);
+            }}
             initialData={data}
             members={members}
-            subcollection={selectedSubcollection}
+            subcollection={obligationSubcollection}
           />
         );
       case 'members':

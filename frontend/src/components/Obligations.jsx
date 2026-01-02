@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { FaArrowLeft, FaPlus, FaRupeeSign, FaEdit, FaTrash, FaCheck, FaSearch, FaChevronLeft, FaChevronRight, FaRedo, FaUsers } from 'react-icons/fa'
 import ObligationAnalytics from './ObligationAnalytics'
+import BulkObligationModal from './BulkObligationModal'
 import { areaAPI, obligationAPI, memberAPI } from '../api'
 
 const Obligations = ({ 
@@ -32,10 +33,8 @@ const Obligations = ({
   const [loading, setLoading] = useState(false)
   const [localObligations, setLocalObligations] = useState([])
   
-  // State for mini bulk add functionality
-  const [showMiniBulkAdd, setShowMiniBulkAdd] = useState(false);
-  const [bulkAmount, setBulkAmount] = useState('');
-  const [bulkMemberCount, setBulkMemberCount] = useState(0);
+  // State for bulk add modal
+  const [showBulkAddModal, setShowBulkAddModal] = useState(false);
 
   // Get all areas for filtering
   useEffect(() => {
@@ -109,67 +108,31 @@ const Obligations = ({
     setSelectAll(false)
   }, [localObligations])
 
-  // Mini bulk add functions
-  const handleMiniBulkAddOpen = async () => {
-    try {
-      // Load all members to get count
-      const response = await memberAPI.getAll();
-      setBulkMemberCount(response.data.length);
-      setShowMiniBulkAdd(true);
-      setBulkAmount('');
-    } catch (error) {
-      console.error('Failed to load members for bulk add:', error);
-    }
+  // Bulk add modal functions
+  const handleBulkAddOpen = () => {
+    setShowBulkAddModal(true);
   };
 
-  const handleMiniBulkAddSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!bulkAmount || parseFloat(bulkAmount) <= 0) {
-      alert('Amount is required and must be greater than 0');
-      return;
-    }
-    
-    if (!selectedSubcollection) {
-      alert('No subcollection selected');
-      return;
-    }
-    
-    if (confirm(`Are you sure you want to create obligations for all ${bulkMemberCount} members with amount ₹${bulkAmount}?`)) {
-      try {
-        setLoading(true);
-        
-        // Get all members
-        const membersResponse = await memberAPI.getAll();
-        
-        // Prepare bulk create data
-        const obligationsData = membersResponse.data.map(member => ({
-          member: member.id,
-          subcollection: selectedSubcollection.id,
-          amount: parseFloat(bulkAmount),
-          paid_status: 'pending'
-        }));
-        
-        // Use bulk create API to create all obligations at once
-        await obligationAPI.bulkCreate({ obligations: obligationsData });
-        
-        alert(`Successfully created ${obligationsData.length} obligations!`);
-        
-        // Reload obligations data
-        if (loadDataForTab) {
-          await loadDataForTab('obligations', true);
-        }
-        
-        // Close the mini form
-        setShowMiniBulkAdd(false);
-        setBulkAmount('');
-        
-      } catch (error) {
-        console.error('Failed to create bulk obligations:', error);
-        alert('Failed to create obligations: ' + (error.message || 'Unknown error'));
-      } finally {
-        setLoading(false);
+  const handleBulkAddSubmit = async (data) => {
+    try {
+      setLoading(true);
+      
+      // Use bulk create API to create all obligations at once
+      await obligationAPI.bulkCreate(data);
+      
+      // Reload obligations data
+      if (loadDataForTab) {
+        await loadDataForTab('obligations', true);
       }
+      
+      // Close the modal
+      setShowBulkAddModal(false);
+      
+    } catch (error) {
+      console.error('Failed to create bulk obligations:', error);
+      throw error; // Re-throw to let the modal handle the error
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -179,16 +142,6 @@ const Obligations = ({
   const currentObligations = filteredObligations.slice(indexOfFirstItem, indexOfLastItem)
   const totalPages = Math.ceil(filteredObligations.length / itemsPerPage)
 
-  const handleDeleteObligation = async (obligation) => {
-    if (window.confirm(`Are you sure you want to delete the obligation for "${obligation.member?.name || 'Unknown Member'}"?`)) {
-      try {
-        await deleteItem('obligations', obligation.id)
-      } catch (error) {
-        console.error('Failed to delete obligation:', error)
-        alert('Failed to delete obligation. Please try again.')
-      }
-    }
-  }
 
   const handleSelectAll = () => {
     if (selectAll) {
@@ -256,6 +209,86 @@ const Obligations = ({
         setTimeout(() => {
           if (loading) setLoading(false)
         }, 1000)
+      }
+    }
+  }
+
+  const handleBulkEdit = () => {
+    if (selectedObligations.length === 0) {
+      alert('Please select an obligation to edit')
+      return
+    }
+    
+    if (selectedObligations.length > 1) {
+      alert('Please select only one obligation to edit')
+      return
+    }
+    
+    // Find the selected obligation from all filtered obligations
+    const obligationId = selectedObligations[0]
+    const obligation = filteredObligations.find(ob => ob.id === obligationId)
+    
+    if (!obligation) {
+      alert('Obligation not found')
+      return
+    }
+    
+    // Ensure the obligation has subcollection data
+    const obligationWithSubcollection = {
+      ...obligation,
+      subcollection: obligation.subcollection || selectedSubcollection?.id || selectedSubcollection
+    };
+    
+    if (handleEditObligation) {
+      handleEditObligation(obligationWithSubcollection)
+    } else if (setEditing) {
+      setEditing({ type: 'obligations', data: obligationWithSubcollection })
+    }
+    
+    // Clear selection after opening edit modal
+    setSelectedObligations([])
+    setSelectAll(false)
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedObligations.length === 0) {
+      alert('Please select obligations to delete')
+      return
+    }
+    
+    const memberNames = selectedObligations.map(id => {
+      const ob = filteredObligations.find(o => o.id === id)
+      return ob?.member?.name || 'Unknown Member'
+    }).join(', ')
+    
+    if (window.confirm(`Are you sure you want to delete ${selectedObligations.length} obligation(s)?\n\nMembers: ${memberNames}`)) {
+      try {
+        setLoading(true)
+        
+        // Delete each obligation
+        const deletePromises = selectedObligations.map(id => deleteItem('obligations', id))
+        await Promise.all(deletePromises)
+        
+        alert(`Successfully deleted ${selectedObligations.length} obligation(s)`)
+        
+        // Clear selection
+        setSelectedObligations([])
+        setSelectAll(false)
+        
+        // Reload data to reflect changes
+        if (loadDataForTab) {
+          await loadDataForTab('obligations', true)
+        }
+        
+        // Refresh analytics using ref
+        if (analyticsRef.current && analyticsRef.current.refreshAnalytics) {
+          analyticsRef.current.refreshAnalytics();
+        }
+      } catch (error) {
+        console.error('Failed to delete obligations:', error)
+        alert('Failed to delete obligations. Please try again.')
+      } finally {
+        setLoading(false)
       }
     }
   }
@@ -376,8 +409,8 @@ const Obligations = ({
           <button onClick={handleReload} className="reload-btn" disabled={loading}>
             <FaRedo />
           </button>
-          <button onClick={handleMiniBulkAddOpen} className="add-btn">
-            <FaPlus />
+          <button onClick={handleBulkAddOpen} className="add-btn" title="Add Bulk Obligations">
+            <FaUsers /> Bulk Add
           </button>
         </div>
       </div>
@@ -439,17 +472,25 @@ const Obligations = ({
       {selectedObligations.length > 0 && (
         <div className="bulk-actions">
           <span>{selectedObligations.length} obligations selected</span>
-          <button onClick={handleBulkPay} className="pay-btn" disabled={loading}>
-            {loading ? (
-              <>
-                <span className="inline-spinner"></span> Processing...
-              </>
-            ) : (
-              <>
-                <FaCheck /> Mark as Paid
-              </>
-            )}
-          </button>
+          <div className="bulk-action-buttons">
+            <button onClick={handleBulkPay} className="pay-btn" disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="inline-spinner"></span> Processing...
+                </>
+              ) : (
+                <>
+                  <FaCheck /> Mark as Paid
+                </>
+              )}
+            </button>
+            <button onClick={handleBulkEdit} className="edit-btn" disabled={loading || selectedObligations.length !== 1}>
+              <FaEdit /> Edit
+            </button>
+            <button onClick={handleBulkDelete} className="delete-btn" disabled={loading}>
+              <FaTrash /> Delete
+            </button>
+          </div>
         </div>
       )}
       
@@ -469,7 +510,6 @@ const Obligations = ({
               <th>Area</th>
               <th>Amount</th>
               <th>Status</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -491,53 +531,11 @@ const Obligations = ({
                       {getStatusText(obligation.paid_status)}
                     </span>
                   </td>
-                  <td>
-                    <div className="action-buttons">
-                      {obligation.paid_status !== 'paid' && (
-                        <button 
-                          className="pay-btn"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (handlePayObligation) {
-                              handlePayObligation(obligation)
-                            }
-                          }}
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <span className="inline-spinner"></span>
-                          ) : (
-                            <FaCheck />
-                          )}
-                        </button>
-                      )}
-                      <button 
-                        className="edit-btn"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (handleEditObligation) {
-                            handleEditObligation(obligation)
-                          }
-                        }}
-                      >
-                        <FaEdit />
-                      </button>
-                      <button 
-                        className="delete-btn"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleDeleteObligation(obligation)
-                        }}
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="6" className="empty-state">
+                <td colSpan="5" className="empty-state">
                   {searchTerm || selectedArea || selectedStatus ? 'No obligations match your search' : 'No obligations found for this subcollection'}
                 </td>
               </tr>
@@ -570,159 +568,17 @@ const Obligations = ({
           </button>
         </div>
       )}
+
+      {/* Bulk Obligation Modal */}
+      <BulkObligationModal
+        isOpen={showBulkAddModal}
+        onClose={() => setShowBulkAddModal(false)}
+        onSubmit={handleBulkAddSubmit}
+        selectedSubcollection={selectedSubcollection}
+        existingObligations={localObligations}
+      />
     </div>
   )
 }
 
-// Render mini bulk add modal using portal
-const MiniBulkAddModal = ({ isOpen, onClose, onSubmit, amount, setAmount, memberCount, loading }) => {
-  if (!isOpen) return null;
-  
-  return createPortal(
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h2><FaUsers /> Bulk Add Obligations</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
-        </div>
-        
-        <form onSubmit={onSubmit}>
-          <div className="form-group">
-            <label>Amount (₹) *</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-              min="0"
-              step="0.01"
-              placeholder="Enter amount for each obligation"
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="form-info">
-            <p>This will create obligations for all {memberCount} members</p>
-          </div>
-          
-          <div className="form-actions">
-            <button 
-              type="button" 
-              className="cancel-btn" 
-              onClick={onClose}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              className="save-btn"
-              disabled={loading}
-            >
-              {loading ? (
-                <span>
-                  <span className="spinner"></span>
-                  Creating...
-                </span>
-              ) : (
-                `Create for ${memberCount} Members`
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body
-  );
-};
-
-// Wrapper component to handle modal
-const ObligationsWithModal = (props) => {
-  const [showMiniBulkAdd, setShowMiniBulkAdd] = useState(false);
-  const [bulkAmount, setBulkAmount] = useState('');
-  const [bulkMemberCount, setBulkMemberCount] = useState(0);
-  
-  const handleMiniBulkAddOpen = async () => {
-    try {
-      const response = await memberAPI.getAll();
-      setBulkMemberCount(response.data.length);
-      setShowMiniBulkAdd(true);
-      setBulkAmount('');
-    } catch (error) {
-      console.error('Failed to load members for bulk add:', error);
-    }
-  };
-
-  const handleMiniBulkAddSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!bulkAmount || parseFloat(bulkAmount) <= 0) {
-      alert('Amount is required and must be greater than 0');
-      return;
-    }
-    
-    if (!props.selectedSubcollection) {
-      alert('No subcollection selected');
-      return;
-    }
-    
-    if (confirm(`Are you sure you want to create obligations for all ${bulkMemberCount} members with amount ₹${bulkAmount}?`)) {
-      try {
-        // Get all members
-        const membersResponse = await memberAPI.getAll();
-        
-        // Prepare bulk create data
-        const obligationsData = membersResponse.data.map(member => ({
-          member: member.id,
-          subcollection: props.selectedSubcollection.id,
-          amount: parseFloat(bulkAmount),
-          paid_status: 'pending'
-        }));
-        
-        // Use bulk create API to create all obligations at once
-        await obligationAPI.bulkCreate({ obligations: obligationsData });
-        
-        alert(`Successfully created ${obligationsData.length} obligations!`);
-        
-        // Reload obligations data
-        if (props.loadDataForTab) {
-          await props.loadDataForTab('obligations', true);
-        }
-        
-        // Close the mini form
-        setShowMiniBulkAdd(false);
-        setBulkAmount('');
-        
-      } catch (error) {
-        console.error('Failed to create bulk obligations:', error);
-        alert('Failed to create obligations: ' + (error.message || 'Unknown error'));
-      }
-    }
-  };
-
-  return (
-    <>
-      <Obligations 
-        {...props}
-        handleMiniBulkAddOpen={handleMiniBulkAddOpen}
-        showMiniBulkAdd={showMiniBulkAdd}
-        setShowMiniBulkAdd={setShowMiniBulkAdd}
-        bulkAmount={bulkAmount}
-        setBulkAmount={setBulkAmount}
-        bulkMemberCount={bulkMemberCount}
-        setBulkMemberCount={setBulkMemberCount}
-      />
-      <MiniBulkAddModal 
-        isOpen={showMiniBulkAdd}
-        onClose={() => setShowMiniBulkAdd(false)}
-        onSubmit={handleMiniBulkAddSubmit}
-        amount={bulkAmount}
-        setAmount={setBulkAmount}
-        memberCount={bulkMemberCount}
-        loading={false} // You would need to pass actual loading state
-      />
-    </>
-  );
-};
-
-export default ObligationsWithModal;
+export default Obligations
