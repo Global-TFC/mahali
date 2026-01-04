@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { FaSearch, FaUsers, FaArrowLeft, FaTimes } from 'react-icons/fa';
 import { memberAPI, obligationAPI } from '../api';
 
-const BulkAddObligationsModal = ({ 
-  isOpen, 
-  onClose, 
-  selectedSubcollection, 
-  areas, 
-  loadDataForTab 
+const BulkAddObligationsModal = ({
+  isOpen,
+  onClose,
+  selectedSubcollection,
+  areas,
+  loadDataForTab
 }) => {
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState([]);
@@ -56,7 +56,7 @@ const BulkAddObligationsModal = ({
 
   const filterMembers = () => {
     let filtered = members;
-    
+
     // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(member =>
@@ -64,21 +64,21 @@ const BulkAddObligationsModal = ({
         member.id.toString().includes(searchTerm)
       );
     }
-    
+
     // Filter by area
     if (selectedArea) {
-      filtered = filtered.filter(member => 
+      filtered = filtered.filter(member =>
         member.house && member.house.area && member.house.area.id === selectedArea
       );
     }
-    
+
     // Filter by guardian status
     if (selectedGuardian !== '') {
-      filtered = filtered.filter(member => 
+      filtered = filtered.filter(member =>
         member.isguardian === (selectedGuardian === 'true')
       );
     }
-    
+
     setFilteredMembers(filtered);
     // Reset selection when filters change
     setSelectedMembers([]);
@@ -104,26 +104,26 @@ const BulkAddObligationsModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!amount || parseFloat(amount) <= 0) {
       setError('Amount is required and must be greater than 0');
       return;
     }
-    
+
     if (selectedMembers.length === 0) {
       setError('Please select at least one member');
       return;
     }
-    
+
     if (!selectedSubcollection) {
       setError('No subcollection selected');
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
-      
+
       // Prepare bulk create data
       const obligationsData = selectedMembers.map(memberId => ({
         member: memberId,
@@ -131,22 +131,22 @@ const BulkAddObligationsModal = ({
         amount: parseFloat(amount),
         paid_status: 'pending'
       }));
-      
+
       // Use bulk create API to create all obligations at once
       await obligationAPI.bulkCreate({ obligations: obligationsData });
-      
+
       setSuccess(`Successfully created ${selectedMembers.length} obligations!`);
-      
+
       // Reload obligations data
       if (loadDataForTab) {
         await loadDataForTab('obligations', true);
       }
-      
+
       // Clear form after successful submission
       setTimeout(() => {
         onClose();
       }, 1500);
-      
+
     } catch (error) {
       console.error('Failed to create bulk obligations:', error);
       setError(error.message || 'Failed to create obligations');
@@ -159,15 +159,21 @@ const BulkAddObligationsModal = ({
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content large-modal">
+      <div className="modal-content large-modal animate-in">
         <div className="modal-header">
-          <h2><FaUsers /> Bulk Add Obligations</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <h2>
+            <div className="header-icon-wrapper">
+              <FaUsers />
+            </div>
+            Bulk Add Obligations
+          </h2>
+          <button className="close-btn" onClick={onClose}><FaTimes /></button>
         </div>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="bulk-add-amount">Amount (₹) *</label>
+
+
+        <form onSubmit={handleSubmit} className="modal-body">
+          <div className="input-wrapper">
+            <label htmlFor="bulk-add-amount">Amount per Responsibility (₹) *</label>
             <input
               type="number"
               id="bulk-add-amount"
@@ -176,33 +182,33 @@ const BulkAddObligationsModal = ({
               required
               min="0"
               step="0.01"
-              placeholder="Enter amount for each obligation"
+              placeholder="0.00"
               disabled={loading}
+              style={{ fontSize: '1.4rem', fontWeight: 'bold' }}
             />
           </div>
-          
+
+
           {/* Search and Filters */}
-          <div className="filter-section">
+          <div className="filter-section" style={{ background: 'var(--header-bg)', padding: '20px', borderRadius: '16px', marginBottom: '24px' }}>
             <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="bulk-add-search"><FaSearch /> Search Members</label>
+              <div className="input-wrapper">
+                <label htmlFor="bulk-add-search"><FaSearch /> Search</label>
                 <input
                   type="text"
                   id="bulk-add-search"
-                  placeholder="Search by name or ID..."
+                  placeholder="Name or ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
                 />
               </div>
-              
-              <div className="form-group">
+
+              <div className="input-wrapper">
                 <label htmlFor="bulk-add-area-filter">Area</label>
                 <select
                   id="bulk-add-area-filter"
                   value={selectedArea}
                   onChange={(e) => setSelectedArea(e.target.value)}
-                  className="filter-select"
                 >
                   <option value="">All Areas</option>
                   {areas.map(area => (
@@ -210,25 +216,25 @@ const BulkAddObligationsModal = ({
                   ))}
                 </select>
               </div>
-              
-              <div className="form-group">
+
+              <div className="input-wrapper">
                 <label htmlFor="bulk-add-guardian-filter">Guardian</label>
                 <select
                   id="bulk-add-guardian-filter"
                   value={selectedGuardian}
                   onChange={(e) => setSelectedGuardian(e.target.value)}
-                  className="filter-select"
                 >
-                  <option value="">All Members</option>
-                  <option value="true">Guardians Only</option>
-                  <option value="false">Non-Guardians Only</option>
+                  <option value="">All</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
                 </select>
               </div>
             </div>
           </div>
-          
+
+
           {/* Member Selection Table */}
-          <div className="table-container">
+          <div className="table-container-no-bg animate-in" style={{ animationDelay: '0.1s', marginBottom: '24px' }}>
             <table>
               <thead>
                 <tr>
@@ -237,86 +243,86 @@ const BulkAddObligationsModal = ({
                       type="checkbox"
                       checked={selectAll}
                       onChange={handleSelectAll}
+                      style={{ width: '18px', height: '18px' }}
                     />
                   </th>
                   <th>Member</th>
                   <th>Area</th>
                   <th>Guardian</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredMembers.length > 0 ? (
                   filteredMembers.map(member => (
-                    <tr key={member.id}>
-                      <td>
+                    <tr key={member.id} onClick={() => handleSelectMember(member.id)} style={{ cursor: 'pointer' }}>
+                      <td onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={selectedMembers.includes(member.id)}
                           onChange={() => handleSelectMember(member.id)}
+                          style={{ width: '18px', height: '18px' }}
                         />
                       </td>
-                      <td>{member.name}</td>
+                      <td style={{ fontWeight: 600 }}>{member.name}</td>
                       <td>{member.house?.area?.name || 'N/A'}</td>
-                      <td>{member.isguardian ? 'Yes' : 'No'}</td>
                       <td>
-                        <button 
-                          type="button" 
-                          className="view-btn"
-                          onClick={() => {
-                            // This could navigate to member details if needed
-                          }}
-                        >
-                          View
-                        </button>
+                        {member.isguardian ?
+                          <span className="badge-primary" style={{ padding: '2px 8px', fontSize: '0.7rem' }}>Guardian</span> :
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Member</span>
+                        }
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="empty-state">
-                      {searchTerm || selectedArea || selectedGuardian ? 'No members match your search' : 'No members found'}
+                    <td colSpan="4" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                      {searchTerm || selectedArea || selectedGuardian ? 'No members match your filters' : 'No members found'}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-          
-          <div className="form-info">
-            <p>Selected members: {selectedMembers.length}</p>
+
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--header-bg)', padding: '16px', borderRadius: '12px', marginBottom: '24px' }}>
+            <span style={{ fontWeight: 600 }}>Total Selected: {selectedMembers.length} Members</span>
+            <span className="badge-primary">Ready to process</span>
           </div>
-          
+
           {(error || success) && (
-            <div className={`status-message ${error ? 'error' : 'success'}`}>
+            <div className={`status-banner ${error ? 'error' : 'success'}`} style={{ marginBottom: '24px' }}>
               {error || success}
             </div>
           )}
-          
+
           <div className="form-actions">
-            <button 
-              type="button" 
-              className="cancel-btn" 
+            <button
+              type="button"
+              className="btn-secondary"
               onClick={onClose}
               disabled={loading}
+              style={{ flex: 1 }}
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="save-btn"
+            <button
+              type="submit"
+              className="btn-primary"
               disabled={loading || selectedMembers.length === 0}
+              style={{ flex: 2 }}
             >
               {loading ? (
-                <span>
+                <>
                   <span className="spinner"></span>
-                  Creating...
-                </span>
+                  Processing...
+                </>
               ) : (
-                `Create ${selectedMembers.length} Obligations`
+                `Confirm & Create ${selectedMembers.length} Obligations`
               )}
             </button>
           </div>
+
         </form>
       </div>
     </div>

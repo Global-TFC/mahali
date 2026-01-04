@@ -6,7 +6,7 @@ const CollectionModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     name: '',
     description: ''
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -24,7 +24,7 @@ const CollectionModal = ({ isOpen, onClose, onSubmit, initialData }) => {
           description: ''
         });
       }
-      
+
       // Reset status messages when modal opens
       setError(null);
       setSuccess(null);
@@ -44,21 +44,21 @@ const CollectionModal = ({ isOpen, onClose, onSubmit, initialData }) => {
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       // Validate required fields
       if (!formData.name.trim()) {
         throw new Error('Collection name is required');
       }
-      
+
       // Prepare the data to submit
       const submitData = { ...formData };
-      
+
       // Call the onSubmit function
       await onSubmit(submitData, initialData);
-      
+
       setSuccess('Collection saved successfully!');
-      
+
       // Close modal after a short delay
       setTimeout(() => {
         onClose();
@@ -75,13 +75,18 @@ const CollectionModal = ({ isOpen, onClose, onSubmit, initialData }) => {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="modal-content animate-in">
         <div className="modal-header">
-          <h2><FaFolder /> {initialData ? 'Edit Collection' : 'Add New Collection'}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <h2>
+            <div className="header-icon-wrapper">
+              <FaFolder />
+            </div>
+            {initialData ? 'Edit Collection' : 'Add New Collection'}
+          </h2>
+          <button className="close-btn" onClick={onClose}><FaTimes /></button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
+        <form onSubmit={handleSubmit} className="modal-body">
+          <div className="input-wrapper">
             <label htmlFor="name">Collection Name *</label>
             <input
               type="text"
@@ -94,8 +99,8 @@ const CollectionModal = ({ isOpen, onClose, onSubmit, initialData }) => {
               placeholder="Enter collection name"
             />
           </div>
-          
-          <div className="form-group">
+
+          <div className="input-wrapper">
             <label htmlFor="description">Description</label>
             <textarea
               id="description"
@@ -107,25 +112,25 @@ const CollectionModal = ({ isOpen, onClose, onSubmit, initialData }) => {
               rows="3"
             />
           </div>
-          
+
           {(error || success) && (
-            <div className={`status-message ${error ? 'error' : 'success'}`}>
+            <div className={`status-banner ${error ? 'error' : 'success'}`}>
               {error || success}
             </div>
           )}
-          
-          <div className="form-actions">
-            <button 
-              type="button" 
-              className="cancel-btn" 
+
+          <div className="form-actions" style={{ marginTop: '24px' }}>
+            <button
+              type="button"
+              className="btn-secondary"
               onClick={onClose}
               disabled={loading}
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="save-btn"
+            <button
+              type="submit"
+              className="btn-primary"
               disabled={loading}
             >
               {loading ? (
@@ -141,6 +146,7 @@ const CollectionModal = ({ isOpen, onClose, onSubmit, initialData }) => {
         </form>
       </div>
     </div>
+
   );
 };
 

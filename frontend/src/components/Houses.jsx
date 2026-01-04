@@ -31,40 +31,40 @@ const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
         console.error('Failed to load areas:', error);
       }
     };
-    
+
     loadAreas();
   }, []);
 
   // Load houses data with pagination
   const loadHouses = useCallback(async (page = 1) => {
     if (loading) return;
-    
+
     setLoading(true);
     try {
       const params = {
         page: page,
         page_size: 15
       };
-      
+
       // Add search and filter parameters
       if (searchParamsRef.current.searchTerm) {
         params.search = searchParamsRef.current.searchTerm;
       }
-      
+
       if (searchParamsRef.current.selectedArea) {
         params.area = searchParamsRef.current.selectedArea;
       }
-      
+
       const response = await houseAPI.search(params);
       const newHouses = response.data.results || response.data;
-      
+
       setHouseList(newHouses);
-      
+
       // Set pagination info
       if (response.data.count) {
         setTotalPages(Math.ceil(response.data.count / 15));
       }
-      
+
     } catch (error) {
       console.error('Failed to load houses:', error);
       setHouseList([]);
@@ -86,10 +86,10 @@ const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
   useEffect(() => {
     // Update the ref with current search params
     searchParamsRef.current = { searchTerm, selectedArea };
-    
+
     // Only proceed if initial data has been loaded
     if (!hasLoadedInitialData.current) return;
-    
+
     const handler = setTimeout(() => {
       loadHouses(1);
       setCurrentPage(1);
@@ -160,47 +160,60 @@ const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
   };
 
   return (
-    <div className="data-section">
+    <div className="data-section animate-in">
       <div className="section-header">
-        <h2><FaHome /> Houses</h2>
+        <h2>
+          <div className="header-icon-wrapper">
+            <FaHome />
+          </div>
+          Houses
+        </h2>
         <div className="header-actions">
-          <button onClick={handleReloadData} className="reload-btn">Reload</button>
-          <button onClick={handleAddHouse} className="add-btn">+ Add New House</button>
+          <button onClick={handleReloadData} className="reload-btn" title="Reload Data">
+            Reload
+          </button>
+          <button onClick={handleAddHouse} className="btn-primary">
+            + Add New House
+          </button>
         </div>
       </div>
-      
+
       {/* Search and Filters */}
       <div className="filter-section">
         <div className="form-row">
           <div className="form-group">
             <label htmlFor="house-search">Search Houses</label>
-            <input
-              type="text"
-              id="house-search"
-              placeholder="Search by house name, family name, or location..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
+            <div className="input-wrapper">
+              <input
+                type="text"
+                id="house-search"
+                placeholder="Name, family, or location..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
           </div>
-          
+
           <div className="form-group">
-            <label htmlFor="house-area">Area</label>
-            <select
-              id="house-area"
-              value={selectedArea}
-              onChange={(e) => setSelectedArea(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Areas</option>
-              {localAreas.map(area => (
-                <option key={area.id} value={area.id}>{area.name}</option>
-              ))}
-            </select>
+            <label htmlFor="house-area">Filter by Area</label>
+            <div className="input-wrapper">
+              <select
+                id="house-area"
+                value={selectedArea}
+                onChange={(e) => setSelectedArea(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Areas</option>
+                {localAreas.map(area => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
-      
+
       <div className="table-container">
         <table>
           <thead>
@@ -210,71 +223,84 @@ const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
               <th>Family Name</th>
               <th>Area</th>
               <th>Location</th>
-              <th>Members</th>
-              <th>Actions</th>
+              <th className="text-center">Members</th>
+              <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {houseList.map(house => (
-              <tr key={house.home_id}>
-                <td>#{house.home_id}</td>
-                <td>{house.house_name}</td>
-                <td>{house.family_name}</td>
-                <td>{house.area_name || 'N/A'}</td>
-                <td>{house.location_name}</td>
-                <td>{house.member_count || 0}</td>
-                <td>
-                  <button onClick={() => handleViewHouse(house)} className="view-btn">
-                    View
-                  </button>
-                  <button onClick={() => handleEditHouse(house)} className="edit-btn">
-                    <FaEdit /> Edit
-                  </button>
-                  <button onClick={() => handleDeleteHouse(house)} className="delete-btn">
-                    <FaTrash /> Delete
-                  </button>
+            {houseList.length > 0 ? (
+              houseList.map(house => (
+                <tr key={house.home_id}>
+                  <td className="text-muted font-mono">#{house.home_id}</td>
+                  <td className="font-semibold">{house.house_name}</td>
+                  <td>{house.family_name}</td>
+                  <td>
+                    <span className="badge-outline">{house.area_name || 'N/A'}</span>
+                  </td>
+                  <td className="text-muted">{house.location_name}</td>
+                  <td className="text-center">
+                    <span className="badge-primary">{house.member_count || 0}</span>
+                  </td>
+                  <td className="text-right">
+                    <div className="action-btn-group">
+                      <button onClick={() => handleViewHouse(house)} className="view-btn" title="View Details">
+                        View
+                      </button>
+                      <button onClick={() => handleEditHouse(house)} className="edit-btn" title="Edit House">
+                        <FaEdit />
+                      </button>
+                      <button onClick={() => handleDeleteHouse(house)} className="delete-btn" title="Delete House">
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : !loading && (
+              <tr>
+                <td colSpan="7" className="text-center py-10">
+                  <div className="empty-state">
+                    <p>No houses found. Try adjusting your filters.</p>
+                  </div>
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
-        {houseList.length === 0 && !loading && (
-          <div className="empty-state">
-            <p>No houses found. Add a new house to get started.</p>
-          </div>
-        )}
+
         {loading && (
-          <div className="loading-state">
-            <p>Loading houses...</p>
+          <div className="loading-overlay-inline">
+            <div className="spinner-small"></div>
+            <p>Syncing houses...</p>
           </div>
         )}
       </div>
-      
+
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="pagination">
-          <button 
+          <button
             onClick={handlePreviousPage}
             disabled={currentPage === 1}
-            className="pagination-btn"
+            className="btn-secondary"
           >
             Previous
           </button>
-          
+
           <span className="pagination-info">
-            Page {currentPage} of {totalPages}
+            Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
           </span>
-          
-          <button 
+
+          <button
             onClick={handleNextPage}
             disabled={currentPage === totalPages}
-            className="pagination-btn"
+            className="btn-secondary"
           >
             Next
           </button>
         </div>
       )}
-      
+
       <HouseModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
@@ -282,7 +308,7 @@ const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
         areas={localAreas}
         loadDataForTab={loadDataForTab}
       />
-      
+
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteModalClose}

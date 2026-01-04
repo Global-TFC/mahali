@@ -1,26 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  FaHome, 
-  FaMapMarkerAlt, 
-  FaHouseUser, 
-  FaUsers, 
-  FaFolder, 
-  FaDatabase, 
+import {
+  FaHome,
+  FaMapMarkerAlt,
+  FaHouseUser,
+  FaUsers,
+  FaFolder,
+  FaDatabase,
   FaFire, // Firebase icon
   FaCog, // Settings icon
-  FaSun, 
-  FaMoon, 
-  FaAdjust 
+  FaSun,
+  FaMoon,
+  FaAdjust
 } from 'react-icons/fa';
 import { settingsAPI } from '../api';
 
-const Sidebar = ({ 
-  theme, 
-  setTheme, 
-  areasCount, 
-  housesCount, 
-  membersCount, 
+const Sidebar = ({
+  theme,
+  setTheme,
+  areasCount,
+  housesCount,
+  membersCount,
   collectionsCount,
   disabled
 }) => {
@@ -30,16 +30,16 @@ const Sidebar = ({
 
   useEffect(() => {
     loadAppSettings();
-    
+
     // Listen for settings updates from other components
     const handleSettingsUpdate = (event) => {
       console.log('Sidebar: Settings updated:', event.detail);
       setAppSettings(event.detail);
       setTheme(event.detail.theme);
     };
-    
+
     window.addEventListener('settingsUpdated', handleSettingsUpdate);
-    
+
     // Cleanup listener on component unmount
     return () => {
       window.removeEventListener('settingsUpdated', handleSettingsUpdate);
@@ -82,7 +82,7 @@ const Sidebar = ({
       }
       setAppSettings(updatedSettings);
       setTheme(newTheme); // Update parent component's state
-      
+
       // Dispatch a custom event to notify other components about the settings update
       window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: updatedSettings }));
     } catch (error) {
@@ -146,7 +146,7 @@ const Sidebar = ({
   };
 
   const activeTab = getActiveTab();
-  
+
   // Check if Firebase is configured
   const isFirebaseConfigured = appSettings && appSettings.firebase_config && appSettings.firebase_config.trim() !== '';
   console.log('Sidebar: appSettings:', appSettings);
@@ -156,106 +156,114 @@ const Sidebar = ({
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="logo-container">
-          <img src="/logo.png" alt="Mahali Logo" className="logo-icon" />
-          <h2>Mahali</h2>
+          <div className="logo-icon-wrapper">
+            <img src="/logo.png" alt="" className="logo-icon" />
+          </div>
+          <h2>Mahal<span>i</span></h2>
         </div>
       </div>
-      
+
       <nav className="sidebar-nav">
-        <button 
+        <button
           className={activeTab === 'dashboard' ? 'active' : ''}
           onClick={() => handleTabChange('dashboard')}
           disabled={disabled}
         >
           <FaHome className="tab-icon" />
-          <span>Dashboard</span>
+          <span>Overview</span>
         </button>
-        <button 
+        <button
           className={activeTab === 'areas' ? 'active' : ''}
           onClick={() => handleTabChange('areas')}
           disabled={disabled}
         >
           <FaMapMarkerAlt className="tab-icon" />
-          <span>Areas</span>
+          <span>Regional Areas</span>
         </button>
-        <button 
+        <button
           className={activeTab === 'houses' ? 'active' : ''}
           onClick={() => handleTabChange('houses')}
           disabled={disabled}
         >
           <FaHouseUser className="tab-icon" />
-          <span>Houses</span>
+          <span>House Units</span>
         </button>
-        {/* Member Request tab - only show if Firebase is configured */}
+
         {isFirebaseConfigured && (
-          <button 
+          <button
             className={activeTab === 'member-request' ? 'active' : ''}
             onClick={() => handleTabChange('member-request')}
             disabled={disabled}
           >
-            <FaFire className="tab-icon" />
-            <span>Member Request</span>
+            <FaFire className="tab-icon pulse" style={{ color: '#ff4b2b' }} />
+            <span>Digital Requests</span>
           </button>
         )}
-        <button 
+
+        <button
           className={activeTab === 'members' ? 'active' : ''}
           onClick={() => handleTabChange('members')}
           disabled={disabled}
         >
           <FaUsers className="tab-icon" />
-          <span>Members</span>
+          <span>Member Directory</span>
         </button>
-        <button 
+
+        <button
           className={activeTab === 'collections' ? 'active' : ''}
           onClick={() => handleTabChange('collections')}
           disabled={disabled}
         >
           <FaFolder className="tab-icon" />
-          <span>Collections</span>
+          <span>Financial Vaults</span>
         </button>
-        <button 
+
+        <div className="sidebar-divider"></div>
+
+        <button
           className={activeTab === 'data' ? 'active' : ''}
           onClick={() => handleTabChange('data')}
           disabled={disabled}
         >
           <FaDatabase className="tab-icon" />
-          <span>Data Management</span>
+          <span>Data Core</span>
         </button>
-        <button 
+
+        <button
           className={activeTab === 'settings' ? 'active' : ''}
           onClick={() => handleTabChange('settings')}
           disabled={disabled}
         >
           <FaCog className="tab-icon" />
-          <span>Settings</span>
+          <span>Environment</span>
         </button>
       </nav>
-      
+
       <div className="sidebar-footer">
-        <div className="theme-selector">
-          <button 
+        <div className="theme-compact-selector">
+          <button
             className={theme === 'light' ? 'active' : ''}
             onClick={() => handleThemeChange('light')}
-            title="Light Theme"
+            title="Sleek Light"
             disabled={disabled}
           >
-            <FaSun className="theme-icon" />
+            <FaSun />
           </button>
-          <button 
+          <button
             className={theme === 'dim' ? 'active' : ''}
             onClick={() => handleThemeChange('dim')}
-            title="Dim Theme"
+            title="Relaxing Dim"
             disabled={disabled}
           >
-            <FaAdjust className="theme-icon" />
+            <FaAdjust />
           </button>
-          <button 
+          <button
             className={theme === 'dark' ? 'active' : ''}
             onClick={() => handleThemeChange('dark')}
-            title="Dark Theme"
+            title="Premium Dark"
             disabled={disabled}
           >
-            <FaMoon className="theme-icon" />
+            <FaMoon />
           </button>
         </div>
       </div>

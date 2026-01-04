@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { settingsAPI } from '../api';
+import { FaCog } from 'react-icons/fa';
 import './Settings.css';
 
 const Settings = () => {
@@ -65,10 +66,10 @@ const Settings = () => {
       console.log('Settings update response:', response);
       setAppSettings(response.data);
       setMessage('Settings saved successfully!');
-      
+
       // Dispatch a custom event to notify other components about the settings update
       window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: response.data }));
-      
+
       // Also update the parent window's settings if needed
       window.parent.dispatchEvent(new CustomEvent('settingsUpdated', { detail: response.data }));
     } catch (error) {
@@ -89,9 +90,9 @@ const Settings = () => {
       let updatedSettings;
       if (appSettings) {
         // Update existing settings
-        const response = await settingsAPI.update(appSettings.id, { 
+        const response = await settingsAPI.update(appSettings.id, {
           ...appSettings,
-          theme: newTheme 
+          theme: newTheme
         });
         updatedSettings = response.data;
       } else {
@@ -102,7 +103,7 @@ const Settings = () => {
       setAppSettings(updatedSettings);
       setTheme(newTheme);
       setMessage('Theme updated successfully!');
-      
+
       // Dispatch a custom event to notify other components about the settings update
       window.dispatchEvent(new CustomEvent('settingsUpdated', { detail: updatedSettings }));
       window.parent.dispatchEvent(new CustomEvent('settingsUpdated', { detail: updatedSettings }));
@@ -113,66 +114,81 @@ const Settings = () => {
   };
 
   return (
-    <div className="data-section">
-      <h2>⚙️ Settings</h2>
-      
+    <div className="data-section animate-in">
+      <div className="section-header">
+        <h2>
+          <div className="header-icon-wrapper">
+            <FaCog />
+          </div>
+          System Control
+        </h2>
+      </div>
+
       {/* Theme Settings */}
-      <div className="data-action-card">
-        <h3>🎨 Theme Settings</h3>
-        <div className="theme-options">
-          <button 
-            className={`theme-option ${theme === 'light' ? 'active' : ''}`}
+      <div className="data-action-card" style={{ padding: '32px' }}>
+        <h3 className="font-semibold" style={{ fontSize: '1.2rem', marginBottom: '20px' }}>
+          Visual Appearance
+        </h3>
+        <p className="text-muted" style={{ marginBottom: '24px' }}>Choose the theme that best fits your environment.</p>
+        <div className="theme-options" style={{ display: 'flex', gap: '16px' }}>
+          <button
+            className={`btn-secondary ${theme === 'light' ? 'active-theme' : ''}`}
             onClick={() => saveThemeSetting('light')}
+            style={{ flex: 1, padding: '16px', borderRadius: '16px', background: theme === 'light' ? 'var(--primary)' : '', color: theme === 'light' ? 'white' : '' }}
           >
-            ☀️ Light
+            ☀️ Bright Daylight
           </button>
-          <button 
-            className={`theme-option ${theme === 'dim' ? 'active' : ''}`}
+          <button
+            className={`btn-secondary ${theme === 'dim' ? 'active-theme' : ''}`}
             onClick={() => saveThemeSetting('dim')}
+            style={{ flex: 1, padding: '16px', borderRadius: '16px', background: theme === 'dim' ? 'var(--primary)' : '', color: theme === 'dim' ? 'white' : '' }}
           >
-            🌗 Dim
+            🌗 Midnight Dim
           </button>
-          <button 
-            className={`theme-option ${theme === 'dark' ? 'active' : ''}`}
+          <button
+            className={`btn-secondary ${theme === 'dark' ? 'active-theme' : ''}`}
             onClick={() => saveThemeSetting('dark')}
+            style={{ flex: 1, padding: '16px', borderRadius: '16px', background: theme === 'dark' ? 'var(--primary)' : '', color: theme === 'dark' ? 'white' : '' }}
           >
-            🌙 Dark
+            🌙 Deep Abyss
           </button>
         </div>
       </div>
-      
+
       {/* Firebase Configuration */}
-      <div className="data-action-card">
-        <h3>🔥 Firebase Configuration</h3>
-        <p>Configure Firebase connection to access external form data.</p>
-        
-        <div className="firebase-config-section">
-          <label>Firebase Config JSON:</label>
-          <textarea
-            value={firebaseConfig}
-            onChange={(e) => setFirebaseConfig(e.target.value)}
-            placeholder='{
-  "apiKey": "your-api-key",
-  "authDomain": "your-auth-domain",
-  "projectId": "your-project-id",
-  ...
-}'
-            rows={10}
-            className="firebase-config-textarea"
-            disabled={loading}
-          />
-          
-          <button 
+      <div className="data-action-card" style={{ padding: '32px', marginTop: '32px' }}>
+        <h3 className="font-semibold" style={{ fontSize: '1.2rem', marginBottom: '20px' }}>
+          Network Integration
+        </h3>
+        <p className="text-muted" style={{ marginBottom: '24px' }}>Bridge the application with external cloud services via Firebase.</p>
+
+        <div className="form-group">
+          <label style={{ marginBottom: '12px', display: 'block' }}>Firebase Configuration Payload (JSON)</label>
+          <div className="input-wrapper">
+            <textarea
+              value={firebaseConfig}
+              onChange={(e) => setFirebaseConfig(e.target.value)}
+              placeholder='{ "apiKey": "...", "projectId": "..." }'
+              rows={8}
+              className="search-input"
+              style={{ fontFamily: 'monospace', fontSize: '13px' }}
+              disabled={loading}
+            />
+          </div>
+
+          <button
             onClick={saveFirebaseConfig}
-            className="export-btn"
+            className="btn-primary"
+            style={{ marginTop: '24px' }}
             disabled={loading}
           >
-            {loading ? 'Saving...' : 'Save Configuration'}
+            {loading ? 'Securing...' : 'Verify & Synchronize'}
           </button>
-          
+
           {message && (
-            <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
-              {message}
+            <div className={`status-banner ${message.includes('success') ? 'success' : 'error'}`} style={{ marginTop: '24px' }}>
+              <div className="status-icon">{message.includes('success') ? '✅' : '⚠️'}</div>
+              <p>{message}</p>
             </div>
           )}
         </div>

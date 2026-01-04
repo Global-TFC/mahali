@@ -37,9 +37,9 @@ const Areas = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
   }
 
   const handleModalSubmit = (formData) => {
-    setEditing({ 
-      type: 'areas', 
-      data: currentArea ? { ...currentArea, ...formData } : formData 
+    setEditing({
+      type: 'areas',
+      data: currentArea ? { ...currentArea, ...formData } : formData
     })
     setIsModalOpen(false)
   }
@@ -63,48 +63,70 @@ const Areas = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
   return (
     <div className="data-section">
       <div className="section-header">
-        <h2><FaMapMarkerAlt /> Areas</h2>
+        <h2>
+          <div className="header-icon-wrapper">
+            <FaMapMarkerAlt />
+          </div>
+          Areas
+        </h2>
         <div className="header-actions">
           <button onClick={handleReloadData} className="reload-btn" title="Reload Data">
             <FaRedo />
           </button>
-          <button onClick={handleAddArea} className="add-btn">
+          <button onClick={handleAddArea} className="btn-primary">
             <FaPlus /> Add New Area
           </button>
         </div>
       </div>
+
       <div className="table-container">
         <table>
           <thead>
             <tr>
-              <th>Name</th>
+              <th>Area Name</th>
               <th>Description</th>
-              <th>Houses</th>
-              <th>Live Members</th>
-              <th>Actions</th>
+              <th className="text-center">Houses</th>
+              <th className="text-center">Live Members</th>
+              <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {areas.map(area => (
-              <tr key={area.id}>
-                <td>{area.name}</td>
-                <td>{area.description || 'N/A'}</td>
-                <td>{area.total_houses || area.houses?.length || 0}</td>
-                <td>{area.total_live_members || 0}</td>
-                <td>
-                  <button onClick={() => handleEditArea(area)} className="edit-btn">
-                    <FaEdit /> Edit
-                  </button>
-                  <button onClick={() => handleDeleteArea(area)} className="delete-btn">
-                    <FaTrash /> Delete
-                  </button>
+            {areas.length > 0 ? (
+              areas.map(area => (
+                <tr key={area.id}>
+                  <td className="font-semibold">{area.name}</td>
+                  <td className="text-muted">{area.description || 'No description'}</td>
+                  <td className="text-center">
+                    <span className="badge-outline">{area.total_houses || area.houses?.length || 0}</span>
+                  </td>
+                  <td className="text-center">
+                    <span className="badge-primary">{area.total_live_members || 0}</span>
+                  </td>
+                  <td className="text-right">
+                    <div className="action-btn-group">
+                      <button onClick={() => handleEditArea(area)} className="edit-btn" title="Edit Area">
+                        <FaEdit /> <span>Edit</span>
+                      </button>
+                      <button onClick={() => handleDeleteArea(area)} className="delete-btn" title="Delete Area">
+                        <FaTrash /> <span>Delete</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" className="text-center py-10">
+                  <div className="empty-state">
+                    <p>No areas found. Create your first area to get started.</p>
+                  </div>
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
-      
+
       <AreaModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
@@ -112,7 +134,7 @@ const Areas = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
         initialData={currentArea}
         loadDataForTab={loadDataForTab}
       />
-      
+
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteModalClose}

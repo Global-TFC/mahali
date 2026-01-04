@@ -33,7 +33,7 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
         console.error('Failed to load areas:', error);
       }
     };
-    
+
     loadAreas();
   }, []);
 
@@ -54,47 +54,47 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
   // Load members data with pagination
   const loadMembers = useCallback(async (page = 1, append = false) => {
     if (loading) return;
-    
+
     setLoading(true);
     try {
       const params = {
         page: page,
         page_size: 15
       };
-      
+
       // Add search and filter parameters
       if (searchTerm) {
         params.search = searchTerm;
       }
-      
+
       if (selectedArea) {
         params.area = selectedArea;
       }
-      
+
       if (selectedStatus) {
         params.status = selectedStatus;
       }
-      
+
       if (isGuardianFilter !== '') {
         params.is_guardian = isGuardianFilter === 'true';
       }
-      
+
       const response = await memberAPI.search(params);
       const newMembers = response.data.results || response.data;
-      
+
       if (append) {
         setFilteredMembers(prev => [...prev, ...newMembers]);
       } else {
         setFilteredMembers(newMembers);
       }
-      
+
       // Check if there are more pages
       if (response.data.next) {
         setHasMore(true);
       } else {
         setHasMore(false);
       }
-      
+
       setInitialLoad(false);
     } catch (error) {
       console.error('Failed to load members:', error);
@@ -121,11 +121,11 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
   // Handle scroll for infinite loading
   const handleScroll = useCallback(() => {
     if (!hasMore || loading || initialLoad) return;
-    
+
     const scrollTop = document.documentElement.scrollTop;
     const scrollHeight = document.documentElement.scrollHeight;
     const clientHeight = document.documentElement.clientHeight;
-    
+
     // Check if user has scrolled to bottom (with 100px threshold)
     if (scrollTop + clientHeight >= scrollHeight - 100) {
       loadMembers(currentPage + 1, true);
@@ -153,7 +153,7 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
       mother: member.mother?.member_id || member.mother || '',
       isGuardian: member.isGuardian || member.isguardian || false
     };
-    
+
     setCurrentMember(transformedMember);
     setIsModalOpen(true);
   }
@@ -193,146 +193,180 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
   }
 
   return (
-    <div className="data-section">
+    <div className="data-section animate-in">
       <div className="section-header">
-        <h2><FaUser /> Members</h2>
+        <h2>
+          <div className="header-icon-wrapper">
+            <FaUser />
+          </div>
+          Members
+        </h2>
         <div className="header-actions">
-          <button onClick={handleReloadData} className="reload-btn">
-            <FaRedo /> Reload
+          <button onClick={handleReloadData} className="reload-btn" title="Reload Data">
+            <FaRedo />
           </button>
-          <button onClick={handleAddMember} className="add-btn">+ Add New Member</button>
+          <button onClick={handleAddMember} className="btn-primary">
+            + New Member
+          </button>
         </div>
       </div>
-      
+
       {/* Search and Filters */}
       <div className="filter-section">
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="member-search">Search Members</label>
-            <input
-              type="text"
-              id="member-search"
-              placeholder="Search by name, surname, or house name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
+            <label htmlFor="member-search">Global Search</label>
+            <div className="input-wrapper">
+              <input
+                type="text"
+                id="member-search"
+                placeholder="Name, surname, or house..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="member-area">Area</label>
-            <select
-              id="member-area"
-              value={selectedArea}
-              onChange={(e) => setSelectedArea(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Areas</option>
-              {areas.map(area => (
-                <option key={area.id} value={area.id}>{area.name}</option>
-              ))}
-            </select>
+            <div className="input-wrapper">
+              <select
+                id="member-area"
+                value={selectedArea}
+                onChange={(e) => setSelectedArea(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Areas</option>
+                {areas.map(area => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          
+
           <div className="form-group">
-            <label htmlFor="member-status">Status</label>
-            <select
-              id="member-status"
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Statuses</option>
-              <option value="live">Live</option>
-              <option value="dead">Dead</option>
-              <option value="terminated">Terminated</option>
-            </select>
+            <label htmlFor="member-status">Vital Status</label>
+            <div className="input-wrapper">
+              <select
+                id="member-status"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Statuses</option>
+                <option value="live">Live</option>
+                <option value="dead">Deceased</option>
+                <option value="terminated">Terminated</option>
+              </select>
+            </div>
           </div>
-          
+
           <div className="form-group">
-            <label htmlFor="member-guardian">Guardian</label>
-            <select
-              id="member-guardian"
-              value={isGuardianFilter}
-              onChange={(e) => setIsGuardianFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All</option>
-              <option value="true">Guardians Only</option>
-              <option value="false">Non-Guardians Only</option>
-            </select>
+            <label htmlFor="member-guardian">Role</label>
+            <div className="input-wrapper">
+              <select
+                id="member-guardian"
+                value={isGuardianFilter}
+                onChange={(e) => setIsGuardianFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Roles</option>
+                <option value="true">Guardians Only</option>
+                <option value="false">Non-Guardians</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
-      
+
       <div className="table-container">
         <table>
           <thead>
             <tr>
               <th>ID</th>
-              <th>Name</th>
-              <th>Surname</th>
-              <th>Area</th>
-              <th>House Name</th>
-              <th>Status</th>
-              <th>Guardian</th>
-              <th>Phone</th>
-              <th>Actions</th>
+              <th>Full Name</th>
+              <th>Area / House</th>
+              <th className="text-center">Status</th>
+              <th className="text-center">Role</th>
+              <th>Contact Info</th>
+              <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredMembers.map(member => (
-              <tr key={member.member_id}>
-                <td>#{member.member_id}</td>
-                <td>{member.name || 'N/A'}</td>
-                <td>{member.surname || 'N/A'}</td>
-                <td>{member.house?.area?.name || member.house?.area_name || 'N/A'}</td>
-                <td>{member.house?.house_name || 'N/A'}</td>
-                <td>
-                  <span className={`status-badge ${member.status === 'live' ? 'active' : member.status === 'dead' ? 'inactive' : 'terminated'}`}>
-                    {member.status?.charAt(0).toUpperCase() + member.status?.slice(1)}
-                  </span>
-                </td>
-                <td>
-                  <span className={member.isGuardian ? 'member-guardian-yes' : 'member-guardian-no'}>
-                    {member.isGuardian ? 'Yes' : 'No'}
-                  </span>
-                </td>
-                <td>{member.phone || member.whatsapp || 'N/A'}</td>
-                <td>
-                  <button onClick={() => handleViewMember(member)} className="view-btn">
-                    <FaEye /> View
-                  </button>
-                  <button onClick={() => handleEditMember(member)} className="edit-btn">
-                    <FaEdit /> Edit
-                  </button>
-                  <button onClick={() => handleDeleteMember(member)} className="delete-btn">
-                    <FaTrash /> Delete
-                  </button>
+            {filteredMembers.length > 0 ? (
+              filteredMembers.map(member => (
+                <tr key={member.member_id}>
+                  <td className="text-muted font-mono">#{member.member_id}</td>
+                  <td>
+                    <div className="font-semibold">{member.name} {member.surname}</div>
+                  </td>
+                  <td>
+                    <div className="badge-outline" style={{ display: 'block', textAlign: 'center', marginBottom: '4px' }}>
+                      {member.house?.area?.name || member.house?.area_name || 'N/A'}
+                    </div>
+                    <div className="text-muted" style={{ fontSize: '0.8rem' }}>
+                      {member.house?.house_name || 'No House'}
+                    </div>
+                  </td>
+                  <td className="text-center">
+                    <span className={`status-badge ${member.status === 'live' ? 'active' : member.status === 'dead' ? 'inactive' : 'terminated'}`}>
+                      {member.status?.charAt(0).toUpperCase() + member.status?.slice(1)}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    {member.isGuardian ? (
+                      <span className="badge-primary" style={{ fontSize: '0.7rem' }}>Guardian</span>
+                    ) : (
+                      <span className="text-muted" style={{ fontSize: '1.2rem' }}>-</span>
+                    )}
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.9rem' }}>{member.phone || 'No Phone'}</div>
+                    <div className="text-muted" style={{ fontSize: '0.8rem' }}>{member.whatsapp || ''}</div>
+                  </td>
+                  <td className="text-right">
+                    <div className="action-btn-group">
+                      <button onClick={() => handleViewMember(member)} className="view-btn" title="View Profile">
+                        <FaEye />
+                      </button>
+                      <button onClick={() => handleEditMember(member)} className="edit-btn" title="Edit Member">
+                        <FaEdit />
+                      </button>
+                      <button onClick={() => handleDeleteMember(member)} className="delete-btn" title="Delete">
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : !loading && (
+              <tr>
+                <td colSpan="7" className="text-center py-10">
+                  <div className="empty-state">
+                    <p>No members found matching your criteria.</p>
+                  </div>
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
-        {filteredMembers.length === 0 && !loading && (
-          <div className="empty-state">
-            <p>No members found. Add a new member to get started.</p>
-          </div>
-        )}
+
         {loading && (
-          <div className="loading-state">
-            <p>Loading members...</p>
+          <div className="loading-overlay-inline">
+            <div className="spinner-small"></div>
+            <p>Fetching members...</p>
           </div>
         )}
       </div>
-      
+
       <MemberModal
         isOpen={isModalOpen}
         onClose={handleModalClose}
         initialData={currentMember}
         loadDataForTab={loadDataForTab}
       />
-      
+
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteModalClose}

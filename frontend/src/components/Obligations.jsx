@@ -5,11 +5,11 @@ import ObligationAnalytics from './ObligationAnalytics'
 import BulkObligationModal from './BulkObligationModal'
 import { areaAPI, obligationAPI, memberAPI } from '../api'
 
-const Obligations = ({ 
-  memberObligations, 
-  selectedSubcollection, 
-  members, 
-  setEditing, 
+const Obligations = ({
+  memberObligations,
+  selectedSubcollection,
+  members,
+  setEditing,
   deleteItem,
   handleAddObligation,
   handleEditObligation,
@@ -32,7 +32,7 @@ const Obligations = ({
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(false)
   const [localObligations, setLocalObligations] = useState([])
-  
+
   // State for bulk add modal
   const [showBulkAddModal, setShowBulkAddModal] = useState(false);
 
@@ -52,7 +52,7 @@ const Obligations = ({
         setAreas(uniqueAreas)
       }
     }
-    
+
     loadAllAreas()
   }, [])
 
@@ -60,31 +60,31 @@ const Obligations = ({
   useEffect(() => {
     const loadObligations = async () => {
       if (!selectedSubcollection) return;
-      
+
       try {
         // First call statistics API (handled by ObligationAnalytics component)
         // Then call search API to get obligations with member details and area info
         const params = {
           subcollection: selectedSubcollection.id
         };
-        
+
         // Add area filter if selected
         if (selectedArea) {
           params.area = selectedArea;
         }
-        
+
         // Add search term if provided
         if (searchTerm) {
           params.search = searchTerm;
         }
-        
+
         // Add status filter if selected
         if (selectedStatus) {
           // For the combined "Pending / Overdue" status, we send "pending" to the backend
           // The backend will handle combining pending and overdue
           params.paid_status = selectedStatus;
         }
-        
+
         const response = await obligationAPI.search(params);
         setLocalObligations(response.data);
       } catch (error) {
@@ -95,7 +95,7 @@ const Obligations = ({
         );
       }
     };
-    
+
     loadObligations();
   }, [selectedSubcollection, memberObligations, selectedArea, searchTerm, selectedStatus]);
 
@@ -116,18 +116,18 @@ const Obligations = ({
   const handleBulkAddSubmit = async (data) => {
     try {
       setLoading(true);
-      
+
       // Use bulk create API to create all obligations at once
       await obligationAPI.bulkCreate(data);
-      
+
       // Reload obligations data
       if (loadDataForTab) {
         await loadDataForTab('obligations', true);
       }
-      
+
       // Close the modal
       setShowBulkAddModal(false);
-      
+
     } catch (error) {
       console.error('Failed to create bulk obligations:', error);
       throw error; // Re-throw to let the modal handle the error
@@ -165,28 +165,28 @@ const Obligations = ({
       alert('Please select obligations to pay')
       return
     }
-    
+
     if (window.confirm(`Are you sure you want to mark ${selectedObligations.length} obligations as paid?`)) {
       try {
         // Show loading state
         setLoading(true)
-        
+
         // Use the bulkPay endpoint for better performance
         const response = await obligationAPI.bulkPay({ obligation_ids: selectedObligations })
-        
+
         // Show success message with actual count
         const updatedCount = response.data.updated_count || selectedObligations.length
         alert(`Successfully marked ${updatedCount} obligations as paid`)
-        
+
         // Clear selection
         setSelectedObligations([])
         setSelectAll(false)
-        
+
         // Reload data to reflect changes
         if (loadDataForTab) {
           await loadDataForTab('obligations', true)
         }
-        
+
         // Refresh analytics using ref
         if (analyticsRef.current && analyticsRef.current.refreshAnalytics) {
           analyticsRef.current.refreshAnalytics();
@@ -218,33 +218,33 @@ const Obligations = ({
       alert('Please select an obligation to edit')
       return
     }
-    
+
     if (selectedObligations.length > 1) {
       alert('Please select only one obligation to edit')
       return
     }
-    
+
     // Find the selected obligation from all filtered obligations
     const obligationId = selectedObligations[0]
     const obligation = filteredObligations.find(ob => ob.id === obligationId)
-    
+
     if (!obligation) {
       alert('Obligation not found')
       return
     }
-    
+
     // Ensure the obligation has subcollection data
     const obligationWithSubcollection = {
       ...obligation,
       subcollection: obligation.subcollection || selectedSubcollection?.id || selectedSubcollection
     };
-    
+
     if (handleEditObligation) {
       handleEditObligation(obligationWithSubcollection)
     } else if (setEditing) {
       setEditing({ type: 'obligations', data: obligationWithSubcollection })
     }
-    
+
     // Clear selection after opening edit modal
     setSelectedObligations([])
     setSelectAll(false)
@@ -255,31 +255,31 @@ const Obligations = ({
       alert('Please select obligations to delete')
       return
     }
-    
+
     const memberNames = selectedObligations.map(id => {
       const ob = filteredObligations.find(o => o.id === id)
       return ob?.member?.name || 'Unknown Member'
     }).join(', ')
-    
+
     if (window.confirm(`Are you sure you want to delete ${selectedObligations.length} obligation(s)?\n\nMembers: ${memberNames}`)) {
       try {
         setLoading(true)
-        
+
         // Delete each obligation
         const deletePromises = selectedObligations.map(id => deleteItem('obligations', id))
         await Promise.all(deletePromises)
-        
+
         alert(`Successfully deleted ${selectedObligations.length} obligation(s)`)
-        
+
         // Clear selection
         setSelectedObligations([])
         setSelectAll(false)
-        
+
         // Reload data to reflect changes
         if (loadDataForTab) {
           await loadDataForTab('obligations', true)
         }
-        
+
         // Refresh analytics using ref
         if (analyticsRef.current && analyticsRef.current.refreshAnalytics) {
           analyticsRef.current.refreshAnalytics();
@@ -298,7 +298,7 @@ const Obligations = ({
     console.log('selectedSubcollection:', selectedSubcollection);
     console.log('setSelectedSubcollection:', setSelectedSubcollection);
     console.log('setActiveTab:', setActiveTab);
-    
+
     // We can navigate back without needing the subcollections and collections props
     // Just clear the selected subcollection and go back to collections tab
     if (setSelectedSubcollection) {
@@ -318,7 +318,7 @@ const Obligations = ({
       if (loadDataForTab) {
         await loadDataForTab('obligations', true) // Force reload obligations
       }
-      
+
       // Refresh analytics using ref
       if (analyticsRef.current && analyticsRef.current.refreshAnalytics) {
         analyticsRef.current.refreshAnalytics();
@@ -387,7 +387,7 @@ const Obligations = ({
             <h2>Member Obligations</h2>
           </div>
         </div>
-        
+
         <div className="empty-state">
           <p>Please select a subcollection to view obligations.</p>
           <p>Navigate to Collections and select a subcollection to view its obligations.</p>
@@ -397,94 +397,97 @@ const Obligations = ({
   }
 
   return (
-    <div className="data-section">
+    <div className="data-section animate-in">
       <div className="section-header">
-        <div className="header-content">
-          <button onClick={handleBack} className="back-btn">
+        <div className="header-content-wrapper">
+          <button onClick={handleBack} className="back-btn" title="Back to Collections">
             <FaArrowLeft />
           </button>
-          <h2>Member Obligations - {selectedSubcollection?.name}</h2>
+          <h2>
+            <div className="header-icon-wrapper" style={{ background: 'var(--accent-gradient)' }}>
+              💰
+            </div>
+            Obligations: {selectedSubcollection?.name}
+          </h2>
         </div>
         <div className="header-actions">
-          <button onClick={handleReload} className="reload-btn" disabled={loading}>
+          <button onClick={handleReload} className="reload-btn" disabled={loading} title="Reload Data">
             <FaRedo />
           </button>
-          <button onClick={handleBulkAddOpen} className="add-btn" title="Add Bulk Obligations">
+          <button onClick={handleBulkAddOpen} className="btn-primary" title="Add Bulk Obligations">
             <FaUsers /> Bulk Add
           </button>
         </div>
       </div>
-      
-      <ObligationAnalytics 
+
+      <ObligationAnalytics
         ref={analyticsRef}
-        obligations={memberObligations} 
-        selectedSubcollection={selectedSubcollection} 
+        obligations={memberObligations}
+        selectedSubcollection={selectedSubcollection}
       />
-      
+
       {/* Search and Filters */}
       <div className="filter-section">
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="search"><FaSearch /> Search Obligations</label>
-            <input
-              type="text"
-              id="search"
-              placeholder="Search by member name or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
+            <label htmlFor="search">Search Obligees</label>
+            <div className="input-wrapper">
+              <input
+                type="text"
+                id="search"
+                placeholder="Name or ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="area-filter">Area</label>
-            <select
-              id="area-filter"
-              value={selectedArea}
-              onChange={(e) => setSelectedArea(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Areas</option>
-              {areas.map(area => (
-                <option key={area.id} value={area.id}>{area.name}</option>
-              ))}
-            </select>
+            <div className="input-wrapper">
+              <select
+                id="area-filter"
+                value={selectedArea}
+                onChange={(e) => setSelectedArea(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Regions</option>
+                {areas.map(area => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          
+
           <div className="form-group">
             <label htmlFor="status-filter">Status</label>
-            <select
-              id="status-filter"
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="filter-select"
-            >
-              <option value="">All Statuses</option>
-              <option value="paid">Paid</option>
-              <option value="pending">Pending / Overdue</option>
-              <option value="partial">Partial</option>
-            </select>
+            <div className="input-wrapper">
+              <select
+                id="status-filter"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Statuses</option>
+                <option value="paid">Settled</option>
+                <option value="pending">Outstanding / Late</option>
+                <option value="partial">Partial Payment</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
-      
+
       {/* Bulk Actions */}
       {selectedObligations.length > 0 && (
-        <div className="bulk-actions">
-          <span>{selectedObligations.length} obligations selected</span>
+        <div className="bulk-actions animate-in">
+          <span className="badge-primary">{selectedObligations.length} Selected Items</span>
           <div className="bulk-action-buttons">
-            <button onClick={handleBulkPay} className="pay-btn" disabled={loading}>
-              {loading ? (
-                <>
-                  <span className="inline-spinner"></span> Processing...
-                </>
-              ) : (
-                <>
-                  <FaCheck /> Mark as Paid
-                </>
-              )}
+            <button onClick={handleBulkPay} className="btn-primary" style={{ background: '#10b981' }} disabled={loading}>
+              {loading ? 'Processing...' : <><FaCheck /> Mark Settled</>}
             </button>
-            <button onClick={handleBulkEdit} className="edit-btn" disabled={loading || selectedObligations.length !== 1}>
+            <button onClick={handleBulkEdit} className="btn-secondary" disabled={loading || selectedObligations.length !== 1}>
               <FaEdit /> Edit
             </button>
             <button onClick={handleBulkDelete} className="delete-btn" disabled={loading}>
@@ -493,29 +496,29 @@ const Obligations = ({
           </div>
         </div>
       )}
-      
+
       {/* Obligations Table */}
       <div className="table-container">
         <table>
           <thead>
             <tr>
-              <th>
+              <th style={{ width: '40px' }}>
                 <input
                   type="checkbox"
                   checked={selectAll}
                   onChange={handleSelectAll}
                 />
               </th>
-              <th>Member</th>
-              <th>Area</th>
-              <th>Amount</th>
-              <th>Status</th>
+              <th>Member Name</th>
+              <th>Region</th>
+              <th>Due Amount</th>
+              <th className="text-center">Settlement Status</th>
             </tr>
           </thead>
           <tbody>
             {currentObligations.length > 0 ? (
               currentObligations.map(obligation => (
-                <tr key={obligation.id} style={{ borderLeft: `4px solid ${getStatusColor(obligation.paid_status)}` }}>
+                <tr key={obligation.id} className={selectedObligations.includes(obligation.id) ? 'selected-row' : ''}>
                   <td>
                     <input
                       type="checkbox"
@@ -523,10 +526,14 @@ const Obligations = ({
                       onChange={() => handleSelectObligation(obligation.id)}
                     />
                   </td>
-                  <td>{obligation.member?.name || 'Unknown Member'}</td>
-                  <td>{getAreaName(obligation)}</td>
-                  <td><FaRupeeSign /> {obligation.amount}</td>
+                  <td className="font-semibold">{obligation.member?.name || 'Unknown Member'}</td>
                   <td>
+                    <span className="badge-outline">{getAreaName(obligation)}</span>
+                  </td>
+                  <td className="font-mono" style={{ color: 'var(--primary)', fontWeight: 700 }}>
+                    <FaRupeeSign fontSize="0.8em" /> {obligation.amount}
+                  </td>
+                  <td className="text-center">
                     <span className={`status-badge ${getStatusClass(obligation.paid_status)}`}>
                       {getStatusText(obligation.paid_status)}
                     </span>
@@ -535,34 +542,43 @@ const Obligations = ({
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="empty-state">
-                  {searchTerm || selectedArea || selectedStatus ? 'No obligations match your search' : 'No obligations found for this subcollection'}
+                <td colSpan="5" className="text-center py-10">
+                  <div className="empty-state">
+                    <p>{searchTerm || selectedArea || selectedStatus ? 'No matching records found.' : 'No obligations for this period.'}</p>
+                  </div>
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+
+        {loading && (
+          <div className="loading-overlay-inline">
+            <div className="spinner-small"></div>
+            <p>Processing batch...</p>
+          </div>
+        )}
       </div>
-      
+
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="pagination">
-          <button 
+          <button
             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="pagination-btn"
+            className="btn-secondary"
           >
-            <FaChevronLeft /> Previous
+            <FaChevronLeft /> Prev
           </button>
-          
+
           <span className="pagination-info">
-            Page {currentPage} of {totalPages}
+            Batch <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
           </span>
-          
-          <button 
+
+          <button
             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
-            className="pagination-btn"
+            className="btn-secondary"
           >
             Next <FaChevronRight />
           </button>

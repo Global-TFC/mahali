@@ -279,17 +279,23 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content modal-content-wide">
+      <div className="modal-content modal-content-wide animate-in">
         <div className="modal-header">
-          <h2><FaUser /> {initialData ? 'Edit Member' : 'Add New Member'}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <h2>
+            <div className="header-icon-wrapper">
+              <FaUser />
+            </div>
+            {initialData ? 'Edit Member' : 'Add New Member'}
+          </h2>
+          <button className="close-btn" onClick={onClose}><FaTimes /></button>
         </div>
 
-        {dataLoading && <div className="status-message info">Loading data...</div>}
+        {dataLoading && <div className="status-banner info">Loading data...</div>}
 
-        <form onSubmit={handleSubmit}>
+
+        <form onSubmit={handleSubmit} className="modal-body">
           <div className="form-row">
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="name">Full Name *</label>
               <input
                 type="text"
@@ -302,7 +308,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
                 placeholder="Enter full name"
               />
             </div>
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="surname">Surname</label>
               <input
                 type="text"
@@ -316,7 +322,8 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           </div>
 
-          <div className="form-group">
+
+          <div className="input-wrapper">
             <label htmlFor="photo">Photo (Optional)</label>
             <div className="photo-upload-container">
               <input
@@ -325,25 +332,26 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
                 accept="image/*"
                 onChange={handlePhotoChange}
                 disabled={loading || dataLoading}
-                className="photo-input"
+                style={{ display: 'none' }}
               />
-              <label htmlFor="photo" className="photo-upload-label">
-                <FaUpload /> Choose Photo
+              <label htmlFor="photo" className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <FaUpload /> {formData.photo ? 'Change Photo' : 'Choose Photo'}
               </label>
-              {formData.photo && <span className="photo-selected">{formData.photo.name}</span>}
+              {formData.photo && <span className="badge-primary" style={{ marginLeft: '12px' }}>{formData.photo.name}</span>}
             </div>
           </div>
 
-          <div className="form-group">
+
+          <div className="input-wrapper">
             <label>House</label>
             <div className="searchable-select">
-              <div className="select-display">
+              <div className="select-display" title="Click to search house">
                 {formData.house ? (
                   <span>
                     {getHouseName(formData.house)} (#{formData.house})
                   </span>
                 ) : (
-                  <span>Select a house</span>
+                  <span style={{ opacity: 0.6 }}>Select a house</span>
                 )}
                 <button
                   type="button"
@@ -357,38 +365,41 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           </div>
 
+
           {showHouseSearch && (
-            <div className="search-modal-overlay">
-              <div className="search-modal">
-                <div className="search-modal-header">
+            <div className="modal-overlay" style={{ zIndex: 1100 }}>
+              <div className="modal-content animate-in" style={{ maxWidth: '500px' }}>
+                <div className="modal-header">
                   <h3>Select House</h3>
                   <button className="close-btn" onClick={() => setShowHouseSearch(false)}>
                     <FaTimes />
                   </button>
                 </div>
-                <div className="search-modal-content">
-                  <input
-                    type="text"
-                    placeholder="Search by house name or ID..."
-                    value={houseSearchTerm}
-                    onChange={(e) => handleHouseSearch(e.target.value)}
-                    className="search-input"
-                    autoFocus
-                  />
-                  <div className="search-results">
+                <div className="modal-body">
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      placeholder="Search by house name or ID..."
+                      value={houseSearchTerm}
+                      onChange={(e) => handleHouseSearch(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="search-results" style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '16px' }}>
                     {filteredHouses.length > 0 ? (
                       filteredHouses.map(house => (
                         <div
                           key={house.home_id}
                           className="search-result-item"
                           onClick={() => selectHouse(house)}
+                          style={{ padding: '12px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}
                         >
-                          <div className="search-result-title">{house.house_name}</div>
-                          <div className="search-result-subtitle">ID: #{house.home_id}</div>
+                          <div style={{ fontWeight: 600 }}>{house.house_name}</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ID: #{house.home_id}</div>
                         </div>
                       ))
                     ) : (
-                      <div className="no-results">No houses found</div>
+                      <div className="no-results" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No houses found</div>
                     )}
                   </div>
                 </div>
@@ -396,8 +407,9 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           )}
 
+
           <div className="form-row">
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="status">Status *</label>
               <select
                 id="status"
@@ -412,7 +424,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
                 <option value="terminated">Terminated</option>
               </select>
             </div>
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="date_of_birth">Date of Birth *</label>
               <input
                 type="date"
@@ -427,7 +439,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
           </div>
 
           {formData.status === 'dead' && (
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="date_of_death">Date of Death</label>
               <input
                 type="date"
@@ -440,8 +452,9 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           )}
 
+
           <div className="form-row">
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="father_name">Father's Name</label>
               <input
                 type="text"
@@ -453,7 +466,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
                 placeholder="Father's first name"
               />
             </div>
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="father_surname">Father's Surname</label>
               <input
                 type="text"
@@ -467,16 +480,16 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="input-wrapper">
             <label>Link to Father (Optional)</label>
             <div className="searchable-select">
-              <div className="select-display">
+              <div className="select-display" title="Click to search member">
                 {formData.father ? (
                   <span>
                     {getMemberName(formData.father)} (#{formData.father})
                   </span>
                 ) : (
-                  <span>Select a father</span>
+                  <span style={{ opacity: 0.6 }}>Select a father</span>
                 )}
                 <button
                   type="button"
@@ -490,38 +503,41 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           </div>
 
+
           {showFatherSearch && (
-            <div className="search-modal-overlay">
-              <div className="search-modal">
-                <div className="search-modal-header">
+            <div className="modal-overlay" style={{ zIndex: 1100 }}>
+              <div className="modal-content animate-in" style={{ maxWidth: '500px' }}>
+                <div className="modal-header">
                   <h3>Select Father</h3>
                   <button className="close-btn" onClick={() => setShowFatherSearch(false)}>
                     <FaTimes />
                   </button>
                 </div>
-                <div className="search-modal-content">
-                  <input
-                    type="text"
-                    placeholder="Search by name or ID..."
-                    value={fatherSearchTerm}
-                    onChange={(e) => handleFatherSearch(e.target.value)}
-                    className="search-input"
-                    autoFocus
-                  />
-                  <div className="search-results">
+                <div className="modal-body">
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      placeholder="Search by name or ID..."
+                      value={fatherSearchTerm}
+                      onChange={(e) => handleFatherSearch(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="search-results" style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '16px' }}>
                     {filteredMembers.length > 0 ? (
                       filteredMembers.map(member => (
                         <div
                           key={member.member_id}
                           className="search-result-item"
                           onClick={() => selectFather(member)}
+                          style={{ padding: '12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                         >
-                          <div className="search-result-title">{member.name || 'Unknown'}</div>
-                          <div className="search-result-subtitle">ID: #{member.member_id}</div>
+                          <div style={{ fontWeight: 600 }}>{member.name || 'Unknown'}</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ID: #{member.member_id}</div>
                         </div>
                       ))
                     ) : (
-                      <div className="no-results">No members found</div>
+                      <div className="no-results" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No members found</div>
                     )}
                   </div>
                 </div>
@@ -529,8 +545,9 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           )}
 
+
           <div className="form-row">
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="mother_name">Mother's Name</label>
               <input
                 type="text"
@@ -542,7 +559,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
                 placeholder="Mother's first name"
               />
             </div>
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="mother_surname">Mother's Surname</label>
               <input
                 type="text"
@@ -556,16 +573,16 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="input-wrapper">
             <label>Link to Mother (Optional)</label>
             <div className="searchable-select">
-              <div className="select-display">
+              <div className="select-display" title="Click to search member">
                 {formData.mother ? (
                   <span>
                     {getMemberName(formData.mother)} (#{formData.mother})
                   </span>
                 ) : (
-                  <span>Select a mother</span>
+                  <span style={{ opacity: 0.6 }}>Select a mother</span>
                 )}
                 <button
                   type="button"
@@ -579,38 +596,41 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           </div>
 
+
           {showMotherSearch && (
-            <div className="search-modal-overlay">
-              <div className="search-modal">
-                <div className="search-modal-header">
+            <div className="modal-overlay" style={{ zIndex: 1100 }}>
+              <div className="modal-content animate-in" style={{ maxWidth: '500px' }}>
+                <div className="modal-header">
                   <h3>Select Mother</h3>
                   <button className="close-btn" onClick={() => setShowMotherSearch(false)}>
                     <FaTimes />
                   </button>
                 </div>
-                <div className="search-modal-content">
-                  <input
-                    type="text"
-                    placeholder="Search by name or ID..."
-                    value={motherSearchTerm}
-                    onChange={(e) => handleMotherSearch(e.target.value)}
-                    className="search-input"
-                    autoFocus
-                  />
-                  <div className="search-results">
+                <div className="modal-body">
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      placeholder="Search by name or ID..."
+                      value={motherSearchTerm}
+                      onChange={(e) => handleMotherSearch(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="search-results" style={{ maxHeight: '300px', overflowY: 'auto', marginTop: '16px' }}>
                     {filteredMembers.length > 0 ? (
                       filteredMembers.map(member => (
                         <div
                           key={member.member_id}
                           className="search-result-item"
                           onClick={() => selectMother(member)}
+                          style={{ padding: '12px', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                         >
-                          <div className="search-result-title">{member.name || 'Unknown'}</div>
-                          <div className="search-result-subtitle">ID: #{member.member_id}</div>
+                          <div style={{ fontWeight: 600 }}>{member.name || 'Unknown'}</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ID: #{member.member_id}</div>
                         </div>
                       ))
                     ) : (
-                      <div className="no-results">No members found</div>
+                      <div className="no-results" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>No members found</div>
                     )}
                   </div>
                 </div>
@@ -618,7 +638,8 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           )}
 
-          <div className="form-group">
+
+          <div className="input-wrapper">
             <label htmlFor="adhar">Aadhar Number</label>
             <input
               type="text"
@@ -632,8 +653,9 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             />
           </div>
 
+
           <div className="form-row">
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="phone">Phone Number</label>
               <input
                 type="tel"
@@ -645,7 +667,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
                 placeholder="Phone number"
               />
             </div>
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="whatsapp">WhatsApp Number</label>
               <input
                 type="tel"
@@ -659,30 +681,32 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </div>
           </div>
 
-          <div className="form-group checkbox-group">
-            <label className="checkbox-label">
+
+          <div className="checkbox-group" style={{ marginBottom: '24px' }}>
+            <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 name="isGuardian"
                 checked={formData.isGuardian}
                 onChange={handleChange}
                 disabled={loading || dataLoading}
-                className="checkbox-input"
+                style={{ width: '20px', height: '20px', accentColor: 'var(--primary)' }}
               />
-              <span className="checkbox-text">Is Guardian of the Family</span>
+              <span className="checkbox-text" style={{ fontSize: '0.9rem', color: 'var(--text)' }}>Is Guardian of the Family</span>
             </label>
           </div>
 
           {(error || success) && (
-            <div className={`status-message ${error ? 'error' : 'success'}`}>
+            <div className={`status-banner ${error ? 'error' : 'success'}`}>
               {error || success}
             </div>
           )}
 
+
           <div className="form-actions">
             <button
               type="button"
-              className="cancel-btn"
+              className="btn-secondary"
               onClick={onClose}
               disabled={loading || dataLoading}
             >
@@ -690,7 +714,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
             </button>
             <button
               type="submit"
-              className="save-btn"
+              className="btn-primary"
               disabled={loading || dataLoading}
             >
               {loading ? (
@@ -703,6 +727,7 @@ const MemberModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab })
               )}
             </button>
           </div>
+
         </form>
       </div>
     </div>

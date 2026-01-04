@@ -29,26 +29,26 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
         // Always fetch from API to get the latest data
         const memberResponse = await memberAPI.get(stableMemberId);
         setMember(memberResponse.data);
-        
+
         // Fetch house and area data
         if (memberResponse.data.house) {
           const houseResponse = await houseAPI.get(memberResponse.data.house);
           setHouse(houseResponse.data);
-          
+
           if (houseResponse.data.area) {
             const areaResponse = await areaAPI.get(houseResponse.data.area);
             setArea(areaResponse.data);
           }
         }
-        
+
         // Fetch obligations for this member
         const obligationsResponse = await obligationAPI.getAll();
-        const memberObligations = obligationsResponse.data.filter(obligation => 
+        const memberObligations = obligationsResponse.data.filter(obligation =>
           obligation.member === memberResponse.data.member_id ||
           (typeof obligation.member === 'object' && obligation.member.member_id === memberResponse.data.member_id)
         );
         setObligations(memberObligations);
-        
+
         // Fetch subcollections
         const subcollectionsResponse = await subcollectionAPI.getAll();
         setSubcollections(subcollectionsResponse.data);
@@ -145,8 +145,8 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
   }
 
   // Find the area for this house
-  const houseArea = area || (house?.area ? 
-    (typeof house.area === 'object' ? house.area : null) : 
+  const houseArea = area || (house?.area ?
+    (typeof house.area === 'object' ? house.area : null) :
     null);
 
   // Prepare member data for table display (excluding fields already shown in ATM cards)
@@ -163,208 +163,147 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
   ];
 
   return (
-    <div className="data-section">
+    <div className="data-section animate-in">
       <div className="section-header">
-        <h2><FaUser /> Member Details</h2>
+        <div className="header-content-wrapper">
+          <button onClick={handleBack} className="back-btn" title="Back to Members">
+            <FaArrowLeft />
+          </button>
+          <h2>
+            <div className="header-icon-wrapper" style={{ background: 'var(--accent-gradient)' }}>
+              <FaUser />
+            </div>
+            Member Certificate: {member?.name}
+          </h2>
+        </div>
         <div className="header-actions">
-          <button 
-            onClick={handleEditMember}
-            className="edit-btn"
-          >
-            <FaEdit /> Edit Member
+          <button onClick={handleEditMember} className="btn-secondary">
+            <FaEdit /> Edit Profile
           </button>
-          <button 
-            onClick={handleDeleteMember}
-            className="delete-btn"
-          >
-            <FaTrash /> Delete Member
-          </button>
-          <button 
-            onClick={handleBack}
-            className="back-btn"
-          >
-            <FaArrowLeft /> Back to Members
+          <button onClick={handleDeleteMember} className="delete-btn" style={{ padding: '10px 20px' }}>
+            <FaTrash /> Remove
           </button>
         </div>
       </div>
-      
+
       <div className="member-details-container">
         {/* ATM Style Cards */}
         <div className="atm-cards-row">
           {/* Member ATM Card - Green Gradient */}
-          <div className="atm-card member-atm-card">
+          <div className="atm-card member-atm-card animate-in" style={{ animationDelay: '0.1s', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
             <div className="atm-card-header">
-              <div className="atm-card-icon">
-                <FaUser />
-              </div>
-              <div className="atm-card-title">Member Details</div>
-              <div className="atm-card-id">#{member?.member_id || 'N/A'}</div>
+              <div className="atm-card-title">Member Identity</div>
+              <div className="atm-card-id">#{member?.member_id}</div>
             </div>
-            
-            <div className="atm-card-content">
-              <div className="atm-card-field">
-                <div className="atm-card-label">Full Name</div>
-                <div className="atm-card-value">{member?.name || 'Unknown Member'}</div>
+
+            <div className="atm-card-number">
+              {member?.name?.toUpperCase() || 'RESIDENT'} {member?.surname?.toUpperCase() || ''}
+            </div>
+
+            <div className="atm-card-footer">
+              <div className="atm-card-holder">
+                <div className="atm-card-label">Primary Contact</div>
+                <div className="atm-card-value">{member?.phone || 'N/A'}</div>
               </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Phone</div>
-                <div className="atm-card-value">
-                  {member?.phone || member?.whatsapp || 'N/A'}
-                </div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">House - Area</div>
-                <div className="atm-card-value">
-                  {house?.house_name || 'N/A'} - {houseArea?.name || 'N/A'}
-                </div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">House ID</div>
-                <div className="atm-card-value">#{house?.home_id || 'N/A'}</div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Date of Birth</div>
-                <div className="atm-card-value">
-                  {member?.date_of_birth 
-                    ? new Date(member.date_of_birth).toLocaleDateString() 
-                    : 'N/A'}
-                </div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Father's Name</div>
-                <div className="atm-card-value">
-                  {member?.father_name 
-                    ? `${member.father_name} ${member.father_surname || ''}` 
-                    : 'N/A'}
-                </div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Status</div>
-                <div className="atm-card-value">
-                  <span className={`status-badge ${member?.status === 'live' ? 'active' : member?.status === 'dead' ? 'inactive' : 'terminated'}`}>
-                    {member?.status?.charAt(0).toUpperCase() + (member?.status?.slice(1) || '')}
-                  </span>
-                </div>
+              <div className="atm-card-expiry">
+                <div className="atm-card-label">Member Status</div>
+                <div className="atm-card-value" style={{ textTransform: 'capitalize' }}>{member?.status}</div>
               </div>
             </div>
+
+            <div className="atm-chip" style={{ background: 'rgba(255,255,255,0.4)' }}></div>
           </div>
-          
+
           {/* House ATM Card - Blue Gradient */}
-          <div className="atm-card house-atm-card">
-            <div className="atm-card-header">
-              <div className="atm-card-icon">
-                <FaHome />
+          {house && (
+            <div className="atm-card house-atm-card animate-in" style={{ animationDelay: '0.2s' }}>
+              <div className="atm-card-header">
+                <div className="atm-card-title">Residential Link</div>
+                <div className="atm-card-id">#{house?.home_id}</div>
               </div>
-              <div className="atm-card-title">House Details</div>
-              <div className="atm-card-id">#{house?.home_id || 'N/A'}</div>
-            </div>
-            
-            <div className="atm-card-content">
-              <div className="atm-card-field">
-                <div className="atm-card-label">House Name</div>
-                <div className="atm-card-value">{house?.house_name || 'N/A'}</div>
+
+              <div className="atm-card-number">
+                {house?.house_name?.toUpperCase() || 'RESIDENTIAL UNIT'}
               </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Family Name</div>
-                <div className="atm-card-value">{house?.family_name || 'N/A'}</div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Area</div>
-                <div className="atm-card-value">{houseArea?.name || 'N/A'}</div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Location</div>
-                <div className="atm-card-value">
-                  <FaMapMarkerAlt /> {house?.location_name || 'N/A'}
+
+              <div className="atm-card-footer">
+                <div className="atm-card-holder">
+                  <div className="atm-card-label">Family Reference</div>
+                  <div className="atm-card-value">{house?.family_name || 'N/A'}</div>
+                </div>
+                <div className="atm-card-button">
+                  <button onClick={handleViewHouse} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.75rem', background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none' }}>
+                    Show House
+                  </button>
                 </div>
               </div>
-              
-              <div className="atm-card-field">
-                <button 
-                  onClick={handleViewHouse}
-                  className="view-house-btn"
-                >
-                  View House Details
-                </button>
-              </div>
+
+              <div className="atm-chip"></div>
+            </div>
+          )}
+        </div>
+
+        {/* Member Full Details Section in Grid Format */}
+        <div className="dashboard-grid" style={{ marginTop: '32px' }}>
+          <div className="data-section" style={{ padding: '24px' }}>
+            <div className="section-header">
+              <h3><FaBirthdayCake style={{ marginRight: '8px', color: 'var(--primary)' }} /> Core Information</h3>
+            </div>
+
+            <div className="member-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px' }}>
+              {memberData.map((item, index) => (
+                <div className="detail-item" key={index} style={{ padding: '12px', borderBottom: '1px solid var(--border)' }}>
+                  <div className="text-muted" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{item.label}</div>
+                  <div className="font-semibold">{item.value}</div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-        
-        {/* Member Full Details Section in Grid Format */}
-        <div className="member-full-details">
-          <div className="section-header">
-            <h3>Member Information</h3>
-            <button 
-              onClick={handleEditMember}
-              className="edit-btn"
-            >
-              <FaEdit /> Edit Member
-            </button>
-          </div>
-          
-          <div className="member-details-grid">
-            {memberData.map((item, index) => (
-              <div className="detail-item" key={index}>
-                <div className="detail-label">{item.label}</div>
-                <div className="detail-value">{item.value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Obligations Section */}
-        <div className="dues-section">
-          <h3>Obligations</h3>
-          <div className="dues-content">
-            {obligations.length > 0 ? (
-              <div className="table-container-no-bg">
+
+          {/* Obligations Section */}
+          <div className="data-section" style={{ padding: '24px' }}>
+            <div className="section-header">
+              <h3>💰 Member Ledger</h3>
+              <span className="badge-primary">{obligations.length} Entries</span>
+            </div>
+
+            <div className="table-container-no-bg">
+              {obligations.length > 0 ? (
                 <table>
                   <thead>
                     <tr>
-                      <th>Subcollection</th>
+                      <th>Period</th>
                       <th>Amount</th>
                       <th>Status</th>
-                      <th>Date</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {obligations.map(obligation => {
-                      // Find the subcollection details for this obligation
-                      const subcollection = subcollections.find(sc => sc.id === obligation.subcollection || sc.id === obligation.subcollection?.id);
-                      
+                    {obligations.slice(0, 10).map(obligation => {
+                      const subcollection = subcollections.find(sc => sc.id === (typeof obligation.subcollection === 'object' ? obligation.subcollection.id : obligation.subcollection));
                       return (
                         <tr key={obligation.id}>
-                          <td>{subcollection?.name || 'N/A'}</td>
-                          <td>₹{obligation.amount || 0}</td>
+                          <td className="font-mono" style={{ fontSize: '0.85rem' }}>{subcollection?.name || 'Item'}</td>
+                          <td className="font-semibold">₹{obligation.amount}</td>
                           <td>
-                            <span className={`status-badge ${obligation.paid_status === 'paid' ? 'active' : obligation.paid_status === 'pending' ? 'pending' : 'overdue'}`}>
-                              {obligation.paid_status?.charAt(0).toUpperCase() + obligation.paid_status?.slice(1)}
+                            <span className={`status-badge ${obligation.paid_status === 'paid' ? 'active' : 'pending'}`}>
+                              {obligation.paid_status}
                             </span>
                           </td>
-                          <td>{obligation.created_at ? new Date(obligation.created_at).toLocaleDateString() : 'N/A'}</td>
                         </tr>
                       );
                     })}
                   </tbody>
                 </table>
-              </div>
-            ) : (
-              <p>No obligations found for this member</p>
-            )}
+              ) : (
+                <div className="empty-state" style={{ padding: '40px' }}>
+                  <p className="text-muted">No financial obligations recorded for this member.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-      
+
       {/* Edit Member Modal */}
       <MemberModal
         isOpen={isEditModalOpen}
@@ -373,7 +312,7 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
         initialData={member}
         loadDataForTab={loadDataForTab}
       />
-      
+
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteModalClose}

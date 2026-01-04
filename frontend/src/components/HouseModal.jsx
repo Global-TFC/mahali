@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { houseAPI, areaAPI } from '../api';
-import { FaHome } from 'react-icons/fa';
+import { FaHome, FaTimes } from 'react-icons/fa';
 
 const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) => {
   const [formData, setFormData] = useState({
@@ -19,7 +19,7 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
     if (isOpen) {
       // Load areas when modal opens
       loadAreas();
-      
+
       if (initialData) {
         setFormData({
           house_name: initialData.house_name || '',
@@ -65,11 +65,11 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       // Prepare data for submission
       const submitData = { ...formData };
-      
+
       if (initialData) {
         // Update existing house
         await houseAPI.update(initialData.home_id, submitData);
@@ -79,12 +79,12 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
         await houseAPI.create(submitData);
         setSuccess('House created successfully!');
       }
-      
+
       // Reload house data
       if (loadDataForTab) {
         loadDataForTab('houses', true); // Force reload
       }
-      
+
       // Close modal after a short delay
       setTimeout(() => {
         onClose();
@@ -102,13 +102,18 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content">
+      <div className="modal-content animate-in">
         <div className="modal-header">
-          <h2><FaHome /> {initialData ? 'Edit House' : 'Add New House'}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <h2>
+            <div className="header-icon-wrapper">
+              <FaHome />
+            </div>
+            {initialData ? 'Edit House' : 'Add New House'}
+          </h2>
+          <button className="close-btn" onClick={onClose}><FaTimes /></button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
+        <form onSubmit={handleSubmit} className="modal-body">
+          <div className="input-wrapper">
             <label htmlFor="house_name">House Name *</label>
             <input
               type="text"
@@ -121,8 +126,8 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
               placeholder="Enter house name"
             />
           </div>
-          
-          <div className="form-group">
+
+          <div className="input-wrapper">
             <label htmlFor="family_name">Family Name *</label>
             <input
               type="text"
@@ -135,8 +140,8 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
               placeholder="Enter family name"
             />
           </div>
-          
-          <div className="form-group">
+
+          <div className="input-wrapper">
             <label htmlFor="location_name">Location Name *</label>
             <input
               type="text"
@@ -149,8 +154,8 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
               placeholder="Enter location name"
             />
           </div>
-          
-          <div className="form-group">
+
+          <div className="input-wrapper">
             <label htmlFor="area">Area *</label>
             <select
               id="area"
@@ -168,8 +173,8 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
               ))}
             </select>
           </div>
-          
-          <div className="form-group">
+
+          <div className="input-wrapper">
             <label htmlFor="address">Address</label>
             <textarea
               id="address"
@@ -181,25 +186,25 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
               placeholder="Enter full address"
             />
           </div>
-          
+
           {(error || success) && (
-            <div className={`status-message ${error ? 'error' : 'success'}`}>
+            <div className={`status-banner ${error ? 'error' : 'success'}`}>
               {error || success}
             </div>
           )}
-          
-          <div className="form-actions">
-            <button 
-              type="button" 
-              className="cancel-btn" 
+
+          <div className="form-actions" style={{ marginTop: '24px' }}>
+            <button
+              type="button"
+              className="btn-secondary"
               onClick={onClose}
               disabled={loading}
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="save-btn"
+            <button
+              type="submit"
+              className="btn-primary"
               disabled={loading}
             >
               {loading ? (
@@ -212,6 +217,7 @@ const HouseModal = ({ isOpen, onClose, onSubmit, initialData, loadDataForTab }) 
               )}
             </button>
           </div>
+
         </form>
       </div>
     </div>
