@@ -40,9 +40,9 @@
 }
 
 .sidebar.collapsed {
-  width: 80px !important;
-  min-width: 80px !important;
-  max-width: 80px !important;
+  width: 70px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
   /* padding: 20px 8px; */
 }
 

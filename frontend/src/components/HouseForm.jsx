@@ -8,7 +8,8 @@ const HouseForm = () => {
         house_name: '',
         family_name: '',
         area: '',
-        location_name: ''
+        location_name: '',
+        address: ''
     });
     const [areas, setAreas] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -62,7 +63,8 @@ const HouseForm = () => {
                     house_name: house.house_name,
                     family_name: house.family_name,
                     area: house.area?.id || house.area || '',
-                    location_name: house.location_name || ''
+                    location_name: house.location_name || '',
+                    address: house.address || ''
                 });
             } catch (e) {
                 // Fallback if get(id) fails or doesn't exist, try list
@@ -73,7 +75,8 @@ const HouseForm = () => {
                         house_name: house.house_name,
                         family_name: house.family_name,
                         area: house.area?.id || house.area || '',
-                        location_name: house.location_name || ''
+                        location_name: house.location_name || '',
+                        address: house.address || ''
                     });
                 } else {
                     setError('House not found');
@@ -200,6 +203,23 @@ const HouseForm = () => {
                             onChange={handleChange}
                             className='form-input'
                             placeholder="Enter location or landmark"
+                        />
+                    </div>
+                </div>
+
+                <div className="form-row">
+                    <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label htmlFor="address">Full Address *</label>
+                        <textarea
+                            id="address"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            required
+                            className='form-input'
+                            placeholder="Enter complete address"
+                            rows="3"
+                            style={{ resize: 'vertical', minHeight: '80px' }}
                         />
                     </div>
                 </div>

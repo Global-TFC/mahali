@@ -60,8 +60,27 @@ const MemberForm = () => {
             setError(null);
             try {
                 const [housesRes, membersRes] = await Promise.all([houseAPI.getAll(), memberAPI.getAll()]);
-                const houseList = housesRes.data || [];
-                const memberList = membersRes.data || [];
+
+                // Normalize house data - handle both paginated and non-paginated responses
+                let houseList = [];
+                if (Array.isArray(housesRes.data)) {
+                    houseList = housesRes.data;
+                } else if (housesRes.data?.results && Array.isArray(housesRes.data.results)) {
+                    houseList = housesRes.data.results;
+                } else if (housesRes.data?.data && Array.isArray(housesRes.data.data)) {
+                    houseList = housesRes.data.data;
+                }
+
+                // Normalize member data - handle both paginated and non-paginated responses
+                let memberList = [];
+                if (Array.isArray(membersRes.data)) {
+                    memberList = membersRes.data;
+                } else if (membersRes.data?.results && Array.isArray(membersRes.data.results)) {
+                    memberList = membersRes.data.results;
+                } else if (membersRes.data?.data && Array.isArray(membersRes.data.data)) {
+                    memberList = membersRes.data.data;
+                }
+
                 setHouses(houseList);
                 setFilteredHouses(houseList);
                 setAllMembers(memberList);
@@ -143,14 +162,19 @@ const MemberForm = () => {
     const handleHouseSearch = (term) => {
         setHouseSearchTerm(term);
         if (!term.trim()) {
-            setFilteredHouses(houses);
+            setFilteredHouses(Array.isArray(houses) ? houses : []);
             setFormData(prev => ({ ...prev, house: '' }));
         } else {
-            const filtered = houses.filter(house =>
-                house.house_name?.toLowerCase().includes(term.toLowerCase()) ||
-                house.home_id?.toString().includes(term.toLowerCase())
-            );
-            setFilteredHouses(filtered);
+            // Defensive check: ensure houses is an array before filtering
+            if (Array.isArray(houses)) {
+                const filtered = houses.filter(house =>
+                    house.house_name?.toLowerCase().includes(term.toLowerCase()) ||
+                    house.home_id?.toString().includes(term.toLowerCase())
+                );
+                setFilteredHouses(filtered);
+            } else {
+                setFilteredHouses([]);
+            }
         }
         setShowHouseSearch(true);
     };
@@ -158,7 +182,7 @@ const MemberForm = () => {
     const handleFatherSearch = (term) => {
         setFatherSearchTerm(term);
         if (!term.trim()) {
-            setFilteredMembers(allMembers);
+            setFilteredMembers(Array.isArray(allMembers) ? allMembers : []);
             setFormData(prev => ({ ...prev, father: '' }));
         } else {
             filterMembers(term, setFilteredMembers);
@@ -169,7 +193,7 @@ const MemberForm = () => {
     const handleMotherSearch = (term) => {
         setMotherSearchTerm(term);
         if (!term.trim()) {
-            setFilteredMembers(allMembers);
+            setFilteredMembers(Array.isArray(allMembers) ? allMembers : []);
             setFormData(prev => ({ ...prev, mother: '' }));
         } else {
             filterMembers(term, setFilteredMembers);
@@ -180,7 +204,7 @@ const MemberForm = () => {
     const handleSpouseSearch = (term) => {
         setSpouseSearchTerm(term);
         if (!term.trim()) {
-            setFilteredMembers(allMembers);
+            setFilteredMembers(Array.isArray(allMembers) ? allMembers : []);
             setFormData(prev => ({ ...prev, married_to: '' }));
         } else {
             filterMembers(term, setFilteredMembers);
@@ -189,6 +213,12 @@ const MemberForm = () => {
     };
 
     const filterMembers = (term, setter) => {
+        // Defensive check: ensure allMembers is an array before filtering
+        if (!Array.isArray(allMembers)) {
+            setter([]);
+            return;
+        }
+
         const filtered = allMembers.filter(member =>
             member.name?.toLowerCase().includes(term.toLowerCase()) ||
             member.surname?.toLowerCase().includes(term.toLowerCase()) ||
@@ -267,6 +297,9 @@ const MemberForm = () => {
             if (!submitData.house) delete submitData.house;
             if (!submitData.married_to) delete submitData.married_to;
 
+            // Log the data being sent for debugging
+            console.log('Submitting member data:', submitData);
+
             if (isEditMode) {
                 await memberAPI.update(id, submitData);
             } else {
@@ -274,7 +307,31 @@ const MemberForm = () => {
             }
             navigate('/members');
         } catch (err) {
-            setError(err.response?.data?.detail || err.response?.data?.message || err.message || 'Failed to save member');
+            // Enhanced error logging
+            console.error('Member save error:', err);
+            console.error('Error response:', err.response?.data);
+
+            // Try to extract meaningful error message
+            let errorMessage = 'Failed to save member';
+            if (err.response?.data) {
+                if (typeof err.response.data === 'string') {
+                    errorMessage = err.response.data;
+                } else if (err.response.data.detail) {
+                    errorMessage = err.response.data.detail;
+                } else if (err.response.data.message) {
+                    errorMessage = err.response.data.message;
+                } else {
+                    // Show field-specific errors
+                    const errors = Object.entries(err.response.data)
+                        .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+                        .join('; ');
+                    if (errors) errorMessage = errors;
+                }
+            } else if (err.message) {
+                errorMessage = err.message;
+            }
+
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
