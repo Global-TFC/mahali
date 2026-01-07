@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { subcollectionAPI } from '../api'
 import { FaArrowLeft, FaPlus, FaRupeeSign, FaEdit, FaTrash, FaRedo, FaTimes } from 'react-icons/fa'
+import DeleteConfirmModal from './DeleteConfirmModal'
 
 const Subcollections = ({
   subcollections,
@@ -23,6 +24,8 @@ const Subcollections = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [subcollectionToDelete, setSubcollectionToDelete] = useState(null);
 
   // Load subcollections data on initial mount
   useEffect(() => {
@@ -42,13 +45,20 @@ const Subcollections = ({
     navigate('/collections')
   }
 
-  const handleDeleteSubcollection = async (subcollection) => {
-    if (window.confirm(`Are you sure you want to delete the subcollection "${subcollection.name}"?`)) {
+  const handleDeleteSubcollection = (subcollection) => {
+    setSubcollectionToDelete(subcollection);
+    setIsDeleteModalOpen(true);
+  }
+
+  const confirmDelete = async () => {
+    if (subcollectionToDelete) {
       try {
-        await deleteItem('subcollections', subcollection.id)
+        await deleteItem('subcollections', subcollectionToDelete.id)
+        setIsDeleteModalOpen(false);
+        setSubcollectionToDelete(null);
       } catch (error) {
         console.error('Failed to delete subcollection:', error)
-        alert('Failed to delete subcollection. Please try again.')
+        throw error;
       }
     }
   }
@@ -79,19 +89,24 @@ const Subcollections = ({
         throw new Error('Amount is required');
       }
 
+      const submissionData = {
+        ...formData,
+        due_date: formData.due_date || null,
+        amount: parseFloat(formData.amount) || 0,
+        collection: selectedCollection?.id
+      };
+
+      if (!submissionData.collection) {
+        throw new Error('No parent collection selected');
+      }
+
       if (editingSubcollection) {
         // Update existing subcollection
-        await subcollectionAPI.update(editingSubcollection.id, {
-          ...formData,
-          collection: selectedCollection?.id
-        });
+        await subcollectionAPI.update(editingSubcollection.id, submissionData);
         setSuccess('Subcollection updated successfully!');
       } else {
         // Create new subcollection
-        await subcollectionAPI.create({
-          ...formData,
-          collection: selectedCollection?.id
-        });
+        await subcollectionAPI.create(submissionData);
         setSuccess('Subcollection created successfully!');
       }
 
@@ -361,6 +376,14 @@ const Subcollections = ({
           <p>This vault is currently empty.</p>
         </div>
       )}
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        item={subcollectionToDelete}
+        itemType="subcollections"
+      />
     </div>
   )
 }

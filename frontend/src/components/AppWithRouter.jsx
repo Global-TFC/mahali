@@ -15,9 +15,13 @@ import Subcollections from './Subcollections'
 import Obligations from './Obligations'
 import DataManagement from './DataManagement'
 import EditForm from './EditForm'
-import MemberModal from './MemberModal'
+
 import DeleteConfirmModal from './DeleteConfirmModal'
 import FirebaseDataImproved from './FirebaseDataImproved'
+import AreaForm from './AreaForm'
+import HouseForm from './HouseForm'
+import MemberForm from './MemberForm'
+import BulkObligationPage from './BulkObligationPage'
 import Settings from './Settings'
 import './App.css'
 
@@ -41,9 +45,7 @@ function AppWithRouter() {
   const [importProgress, setImportProgress] = useState(null)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [currentMember, setCurrentMember] = useState(null)
   const [memberToDelete, setMemberToDelete] = useState(null)
 
   // Track which tabs have been loaded
@@ -320,16 +322,6 @@ function AppWithRouter() {
     }
   }
 
-  const handleAddMember = () => {
-    setCurrentMember(null)
-    setIsModalOpen(true)
-  }
-
-  const handleEditMember = (member) => {
-    setCurrentMember(member)
-    setIsModalOpen(true)
-  }
-
   const handleDeleteMember = (member) => {
     setMemberToDelete(member)
     setIsDeleteModalOpen(true)
@@ -343,11 +335,6 @@ function AppWithRouter() {
       // Reload member data after deletion
       loadDataForTab('members', true) // Force reload
     }
-  }
-
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setCurrentMember(null)
   }
 
   const handleDeleteModalClose = () => {
@@ -393,6 +380,13 @@ function AppWithRouter() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/areas/add" element={<AreaForm />} />
+              <Route path="/areas/edit/:id" element={<AreaForm />} />
+              <Route path="/houses/add" element={<HouseForm />} />
+              <Route path="/houses/edit/:id" element={<HouseForm />} />
+              <Route path="/members/add" element={<MemberForm />} />
+              <Route path="/members/edit/:id" element={<MemberForm />} />
+              <Route path="/obligations/bulk-add" element={<BulkObligationPage />} />
               <Route path="/areas" element={
                 <Areas
                   areas={areas}
@@ -510,12 +504,7 @@ function AppWithRouter() {
               />
             )}
 
-            <MemberModal
-              isOpen={isModalOpen}
-              onClose={handleModalClose}
-              initialData={currentMember}
-              loadDataForTab={loadDataForTab}
-            />
+
 
             <DeleteConfirmModal
               isOpen={isDeleteModalOpen}

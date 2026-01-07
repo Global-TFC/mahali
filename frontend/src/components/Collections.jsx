@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collectionAPI } from '../api'
 import { FaFolder, FaPlus, FaEdit, FaTrash, FaRedo, FaTimes } from 'react-icons/fa'
+import DeleteConfirmModal from './DeleteConfirmModal'
 
 const Collections = ({
   collections,
@@ -15,6 +16,8 @@ const Collections = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [collectionToDelete, setCollectionToDelete] = useState(null);
 
   const navigate = useNavigate();
 
@@ -38,13 +41,20 @@ const Collections = ({
     loadDataForTab('collections', true) // Force reload
   }
 
-  const handleDeleteCollection = async (collection) => {
-    if (window.confirm(`Are you sure you want to delete the collection "${collection.name}"? This will also delete all associated subcollections and obligations.`)) {
+  const handleDeleteCollection = (collection) => {
+    setCollectionToDelete(collection);
+    setIsDeleteModalOpen(true);
+  }
+
+  const confirmDelete = async () => {
+    if (collectionToDelete) {
       try {
-        await deleteItem('collections', collection.id)
+        await deleteItem('collections', collectionToDelete.id)
+        setIsDeleteModalOpen(false);
+        setCollectionToDelete(null);
       } catch (error) {
         console.error('Failed to delete collection:', error)
-        alert('Failed to delete collection. Please try again.')
+        throw error; // Let the modal handle the error display
       }
     }
   }
@@ -301,6 +311,14 @@ const Collections = ({
           <p>The collection vault is empty. Start by registering a new one.</p>
         </div>
       )}
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        item={collectionToDelete}
+        itemType="collections"
+      />
     </div>
   )
 }

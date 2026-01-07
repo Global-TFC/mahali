@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaUser, FaEdit, FaTrash, FaEye, FaRedo } from 'react-icons/fa'
-import MemberModal from './MemberModal'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import { memberAPI, areaAPI } from '../api'
 
 const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
   const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  // const [isModalOpen, setIsModalOpen] = useState(false) // Removed
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [currentMember, setCurrentMember] = useState(null)
+  // const [currentMember, setCurrentMember] = useState(null) // Removed
   const [memberToDelete, setMemberToDelete] = useState(null)
   const [areas, setAreas] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -140,22 +139,11 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
   }, [handleScroll]);
 
   const handleAddMember = () => {
-    setCurrentMember(null)
-    setIsModalOpen(true)
+    navigate('/members/add');
   }
 
   const handleEditMember = (member) => {
-    // Transform member data to match the expected format for the modal
-    const transformedMember = {
-      ...member,
-      house: member.house?.home_id || member.house || '',
-      father: member.father?.member_id || member.father || '',
-      mother: member.mother?.member_id || member.mother || '',
-      isGuardian: member.isGuardian || member.isguardian || false
-    };
-
-    setCurrentMember(transformedMember);
-    setIsModalOpen(true);
+    navigate(`/members/edit/${member.member_id}`);
   }
 
   const handleDeleteMember = (member) => {
@@ -182,10 +170,10 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
     loadMembers(1, false);
   }
 
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setCurrentMember(null)
-  }
+  // const handleModalClose = () => { // Removed
+  //   setIsModalOpen(false)
+  //   setCurrentMember(null)
+  // }
 
   const handleDeleteModalClose = () => {
     setIsDeleteModalOpen(false)
@@ -220,7 +208,7 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
               <input
                 type="text"
                 id="member-search"
-                placeholder="Name, surname, or house..."
+                placeholder="Search by ID, Name, Surname or House..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
@@ -359,13 +347,6 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
           </div>
         )}
       </div>
-
-      <MemberModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        initialData={currentMember}
-        loadDataForTab={loadDataForTab}
-      />
 
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}

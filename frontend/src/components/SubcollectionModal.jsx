@@ -88,8 +88,11 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
 
     // Apply search filter
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(member =>
-        member.name && member.name.toLowerCase().includes(searchTerm.toLowerCase())
+        (member.name && member.name.toLowerCase().includes(term)) ||
+        (member.surname && member.surname.toLowerCase().includes(term)) ||
+        (member.member_id && member.member_id.toString().includes(term))
       );
     }
 
@@ -270,7 +273,7 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
                   id="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Name..."
+                  placeholder="Search by ID, Name or Surname..."
                   disabled={loading}
                 />
               </div>
@@ -359,11 +362,11 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
                     }}
                   >
                     <div className="member-info">
-                      <div className="member-name" style={{ fontWeight: 600 }}>{member.name || 'Unknown Member'}</div>
+                      <div className="member-name" style={{ fontWeight: 600 }}>
+                        {`${member.member_id} - ${member.name} ${member.surname || ''}`}
+                      </div>
                       <div className="member-details" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        ID: #{member.member_id} |
-                        House: {member.house?.house_name || 'N/A'} |
-                        Area: {member.house?.area?.name || 'N/A'}
+                        House: {member.house?.house_name || 'N/A'} | Area: {member.house?.area?.name || 'N/A'}
                       </div>
                     </div>
                     <div className="selection-indicator">

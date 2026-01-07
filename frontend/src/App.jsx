@@ -38,7 +38,7 @@ function App() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [obligationToPay, setObligationToPay] = useState(null)
   const [isBulkObligationModalOpen, setIsBulkObligationModalOpen] = useState(false)
-  
+
   // Member search and filter states
   const [memberSearchTerm, setMemberSearchTerm] = useState('')
   const [memberSelectedArea, setMemberSelectedArea] = useState('')
@@ -47,7 +47,7 @@ function App() {
   const [filteredMembers, setFilteredMembers] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
-  
+
   useEffect(() => {
     // Wait a bit to ensure Django server is running
     const timeout = setTimeout(() => {
@@ -57,15 +57,19 @@ function App() {
     return () => clearTimeout(timeout)
   }, [])
 
+  useEffect(() => {
+    document.body.className = `theme-${theme}`;
+  }, [theme]);
+
   const loadData = async () => {
     setLoading(true)
     setError(null)
     try {
       // Load all data from backend
       const [
-        membersRes, 
-        housesRes, 
-        areasRes, 
+        membersRes,
+        housesRes,
+        areasRes,
         collectionsRes,
         subcollectionsRes,
         obligationsRes
@@ -77,10 +81,10 @@ function App() {
         subcollectionAPI.getAll(),
         obligationAPI.getAll()
       ])
-      
+
       console.log('Subcollections data:', subcollectionsRes.data);
       console.log('Collections data:', collectionsRes.data);
-      
+
       setMembers(membersRes.data)
       setHouses(housesRes.data)
       setAreas(areasRes.data)
@@ -146,15 +150,15 @@ function App() {
       const updateData = {
         paid_status: 'paid'
       };
-      
+
       await obligationAPI.partialUpdate(obligationToPay.id, updateData);
-      
+
       // Reload obligations data
       loadDataForTab('obligations', true);
-      
+
       // Close the modal
       handlePaymentModalClose();
-      
+
       return Promise.resolve();
     } catch (error) {
       console.error('Failed to process payment:', error);
@@ -180,7 +184,7 @@ function App() {
         // Create new item
         await createItem(type, data);
       }
-      
+
       setFormData({});
       setEditing(null);
       loadData();
@@ -190,48 +194,48 @@ function App() {
   }
 
   const createItem = async (type, data) => {
-    const apis = { 
-      members: memberAPI, 
-      houses: houseAPI, 
-      areas: areaAPI, 
-      collections: collectionAPI, 
-      subcollections: subcollectionAPI, 
-      obligations: obligationAPI, 
-      events: eventAPI 
+    const apis = {
+      members: memberAPI,
+      houses: houseAPI,
+      areas: areaAPI,
+      collections: collectionAPI,
+      subcollections: subcollectionAPI,
+      obligations: obligationAPI,
+      events: eventAPI
     }
     return await apis[type].create(data)
   }
 
   const updateItem = async (type, id, data) => {
-    const apis = { 
-      members: memberAPI, 
-      houses: houseAPI, 
-      areas: areaAPI, 
-      collections: collectionAPI, 
-      subcollections: subcollectionAPI, 
-      obligations: obligationAPI, 
-      events: eventAPI 
+    const apis = {
+      members: memberAPI,
+      houses: houseAPI,
+      areas: areaAPI,
+      collections: collectionAPI,
+      subcollections: subcollectionAPI,
+      obligations: obligationAPI,
+      events: eventAPI
     }
-    
+
     // For obligations, use partialUpdate to allow partial updates
     if (type === 'obligations') {
       return await obligationAPI.partialUpdate(id, data)
     }
-    
+
     return await apis[type].update(id, data)
   }
 
   const deleteItem = async (type, id) => {
-    const apis = { 
-      members: memberAPI, 
-      houses: houseAPI, 
-      areas: areaAPI, 
-      collections: collectionAPI, 
-      subcollections: subcollectionAPI, 
-      obligations: obligationAPI, 
-      events: eventAPI 
+    const apis = {
+      members: memberAPI,
+      houses: houseAPI,
+      areas: areaAPI,
+      collections: collectionAPI,
+      subcollections: subcollectionAPI,
+      obligations: obligationAPI,
+      events: eventAPI
     }
-    
+
     // Special handling for members and houses which use custom ID fields
     let result;
     if (type === 'members') {
@@ -241,7 +245,7 @@ function App() {
     } else {
       result = await apis[type].delete(id)
     }
-    
+
     loadData()
     return result;
   }
@@ -249,17 +253,17 @@ function App() {
   const exportData = async () => {
     try {
       setExportProgress({ status: 'starting', message: 'Starting export...' })
-      
+
       // Simulate progress for better UX
       setExportProgress({ status: 'processing', message: 'Collecting data...', progress: 25 })
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       setExportProgress({ status: 'processing', message: 'Packaging files...', progress: 50 })
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       setExportProgress({ status: 'processing', message: 'Compressing archive...', progress: 75 })
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       const response = await eventAPI.exportData()
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const a = document.createElement('a')
@@ -268,7 +272,7 @@ function App() {
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
-      
+
       setExportProgress({ status: 'completed', message: 'Export completed!', progress: 100 })
       setTimeout(() => setExportProgress(null), 3000)
     } catch (error) {
@@ -286,17 +290,17 @@ function App() {
 
     try {
       setImportProgress({ status: 'starting', message: 'Starting import...' })
-      
+
       // Simulate progress for better UX
       setImportProgress({ status: 'processing', message: 'Validating file...', progress: 25 })
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       setImportProgress({ status: 'processing', message: 'Extracting data...', progress: 50 })
       await new Promise(resolve => setTimeout(resolve, 500))
-      
+
       setImportProgress({ status: 'processing', message: 'Importing records...', progress: 75 })
       await eventAPI.importData(formData)
-      
+
       setImportProgress({ status: 'completed', message: 'Import completed!', progress: 100 })
       setTimeout(() => setImportProgress(null), 3000)
       loadData()
@@ -315,13 +319,13 @@ function App() {
       setMemberIsGuardianFilter('')
       setCurrentPage(1)
     }
-    
+
     // Pagination logic
     const indexOfLastItem = currentPage * itemsPerPage
     const indexOfFirstItem = indexOfLastItem - itemsPerPage
     const currentMembers = filteredMembers.slice(indexOfFirstItem, indexOfLastItem)
     const totalPages = Math.ceil(filteredMembers.length / itemsPerPage)
-    
+
     return (
       <div className="data-section">
         <div className="section-header">
@@ -330,7 +334,7 @@ function App() {
             <FaPlus />
           </button>
         </div>
-        
+
         {/* Search and Filters */}
         <div className="filter-section">
           <div className="form-row">
@@ -345,7 +349,7 @@ function App() {
                 className="search-input"
               />
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="member-area">Area</label>
               <select
@@ -360,7 +364,7 @@ function App() {
                 ))}
               </select>
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="member-status">Status</label>
               <select
@@ -375,7 +379,7 @@ function App() {
                 <option value="terminated">Terminated</option>
               </select>
             </div>
-            
+
             <div className="form-group">
               <label htmlFor="member-guardian">Guardian</label>
               <select
@@ -389,7 +393,7 @@ function App() {
                 <option value="false">Non-Guardians Only</option>
               </select>
             </div>
-            
+
             <div className="form-group">
               <label>&nbsp;</label>
               <button onClick={resetFilters} className="cancel-btn">
@@ -398,7 +402,7 @@ function App() {
             </div>
           </div>
         </div>
-        
+
         <div className="table-container">
           <table>
             <thead>
@@ -434,11 +438,11 @@ function App() {
                   </td>
                   <td>{member.phone || member.whatsapp || 'N/A'}</td>
                   <td>
-                    <button 
+                    <button
                       onClick={() => {
                         setSelectedMember(member);
                         setActiveTab('member-details');
-                      }} 
+                      }}
                       className="view-btn"
                     >
                       👁️ View
@@ -456,23 +460,23 @@ function App() {
             </div>
           )}
         </div>
-        
+
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="pagination">
-            <button 
+            <button
               onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
               className="pagination-btn"
             >
               Previous
             </button>
-            
+
             <span className="pagination-info">
               Page {currentPage} of {totalPages}
             </span>
-            
-            <button 
+
+            <button
               onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
               className="pagination-btn"
@@ -599,7 +603,7 @@ function App() {
   )
 
   const renderObligations = () => (
-    <Obligations 
+    <Obligations
       memberObligations={memberObligations}
       selectedSubcollection={selectedSubcollection}
       members={members}
@@ -637,7 +641,7 @@ function App() {
 
     // Find the house for this member
     const memberHouse = houses.find(house => house.home_id === selectedMember.house) || null;
-    
+
     // Find the area for this house
     let houseArea = null;
     if (memberHouse && memberHouse.area) {
@@ -673,7 +677,7 @@ function App() {
           <h3>📤 Export Data</h3>
           <p>Export all data to a ZIP file for backup or transfer.</p>
           <button onClick={exportData} className="export-btn">Export Now</button>
-          
+
           {/* Export Progress */}
           {exportProgress && (
             <div className={`progress-container ${exportProgress.status}`}>
@@ -683,16 +687,16 @@ function App() {
               </div>
               {exportProgress.progress && (
                 <div className="progress-bar">
-                  <div 
-                    className="progress-fill" 
-                    style={{width: `${exportProgress.progress}%`}}
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${exportProgress.progress}%` }}
                   ></div>
                 </div>
               )}
             </div>
           )}
         </div>
-        
+
         <div className="data-action-card">
           <h3>📥 Import Data</h3>
           <p>Import data from a previously exported ZIP file.</p>
@@ -700,7 +704,7 @@ function App() {
             Select File
             <input type="file" accept=".zip" onChange={importData} />
           </label>
-          
+
           {/* Import Progress */}
           {importProgress && (
             <div className={`progress-container ${importProgress.status}`}>
@@ -710,9 +714,9 @@ function App() {
               </div>
               {importProgress.progress && (
                 <div className="progress-bar">
-                  <div 
-                    className="progress-fill" 
-                    style={{width: `${importProgress.progress}%`}}
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${importProgress.progress}%` }}
                   ></div>
                 </div>
               )}
@@ -725,29 +729,29 @@ function App() {
 
   const renderForm = () => {
     if (!editing) return null;
-    
+
     const { type, data } = editing;
-    
+
     // Import the appropriate modal component based on the type
     switch (type) {
       case 'collections':
         return (
-          <CollectionModal 
+          <CollectionModal
             isOpen={!!editing}
-            onClose={() => setEditing(null)} 
+            onClose={() => setEditing(null)}
             onSubmit={(formData, initialData) => handleSubmit('collections', formData)}
             initialData={data && data.id ? data : null}
           />
         );
       case 'subcollections':
         return (
-          <SubcollectionModal 
+          <SubcollectionModal
             isOpen={!!editing}
-            onClose={() => setEditing(null)} 
+            onClose={() => setEditing(null)}
             onSubmit={async (formData, selectedMembers, initialData) => {
               try {
                 let createdSubcollection;
-                
+
                 // Create or update the subcollection
                 if (initialData && initialData.id) {
                   // Update existing subcollection
@@ -763,11 +767,11 @@ function App() {
                   });
                   createdSubcollection = result.data;
                 }
-                
+
                 // If there are selected members and this is a new subcollection, create obligations
                 if (selectedMembers && selectedMembers.length > 0 && !initialData) {
                   const subcollectionId = createdSubcollection ? createdSubcollection.id : null;
-                  
+
                   if (subcollectionId) {
                     // Create obligations for selected members
                     const obligationsData = selectedMembers.map(memberId => ({
@@ -776,12 +780,12 @@ function App() {
                       amount: formData.amount,
                       paid_status: 'pending'
                     }));
-                    
+
                     // Use bulk create API to create all obligations at once
                     await obligationAPI.bulkCreate({ obligations: obligationsData });
                   }
                 }
-                
+
                 setFormData({});
                 setEditing(null);
                 loadData();
@@ -804,9 +808,9 @@ function App() {
           return null;
         }
         return (
-          <ObligationModal 
+          <ObligationModal
             isOpen={!!editing}
-            onClose={() => setEditing(null)} 
+            onClose={() => setEditing(null)}
             onSubmit={(formData) => {
               const submitData = {
                 ...formData,
@@ -822,9 +826,9 @@ function App() {
         );
       case 'members':
         return (
-          <MemberModal 
+          <MemberModal
             isOpen={!!editing}
-            onClose={() => setEditing(null)} 
+            onClose={() => setEditing(null)}
             onSubmit={(formData) => handleSubmit('members', formData)}
             initialData={data}
             loadDataForTab={loadDataForTab}
@@ -832,18 +836,18 @@ function App() {
         );
       case 'areas':
         return (
-          <AreaModal 
+          <AreaModal
             isOpen={!!editing}
-            onClose={() => setEditing(null)} 
+            onClose={() => setEditing(null)}
             onSubmit={(formData) => handleSubmit('areas', formData)}
             initialData={data}
           />
         );
       case 'houses':
         return (
-          <HouseModal 
+          <HouseModal
             isOpen={!!editing}
-            onClose={() => setEditing(null)} 
+            onClose={() => setEditing(null)}
             onSubmit={(formData) => handleSubmit('houses', formData)}
             initialData={data}
             areas={areas}
@@ -862,61 +866,61 @@ function App() {
           <div className="sidebar-header">
             <h2>🏛️ Mahall</h2>
           </div>
-          
+
           <nav className="sidebar-nav">
-            <button 
+            <button
               className={activeTab === 'dashboard' ? 'active' : ''}
               onClick={() => setActiveTab('dashboard')}
             >
               📊 Dashboard
             </button>
-            <button 
+            <button
               className={activeTab === 'areas' ? 'active' : ''}
               onClick={() => setActiveTab('areas')}
             >
               📍 Areas ({areas.length})
             </button>
-            <button 
+            <button
               className={activeTab === 'houses' ? 'active' : ''}
               onClick={() => setActiveTab('houses')}
             >
               🏘️ Houses ({houses.length})
             </button>
-            <button 
+            <button
               className={activeTab === 'members' ? 'active' : ''}
               onClick={() => setActiveTab('members')}
             >
               👥 Members ({members.length})
             </button>
-            <button 
+            <button
               className={activeTab === 'collections' ? 'active' : ''}
               onClick={() => setActiveTab('collections')}
             >
               📂 Collections ({collections.length})
             </button>
-            <button 
+            <button
               className={activeTab === 'data' ? 'active' : ''}
               onClick={() => setActiveTab('data')}
             >
               💾 Data Management
             </button>
           </nav>
-          
+
           <div className="sidebar-footer">
             <div className="theme-selector">
-              <button 
+              <button
                 className={theme === 'light' ? 'active' : ''}
                 onClick={() => setTheme('light')}
               >
                 ☀️
               </button>
-              <button 
+              <button
                 className={theme === 'dim' ? 'active' : ''}
                 onClick={() => setTheme('dim')}
               >
                 🌗
               </button>
-              <button 
+              <button
                 className={theme === 'dark' ? 'active' : ''}
                 onClick={() => setTheme('dark')}
               >
@@ -925,7 +929,7 @@ function App() {
             </div>
           </div>
         </aside>
-        
+
         {/* Main Content */}
         <div className="main-content">
           <header>
@@ -933,7 +937,7 @@ function App() {
               <h1>🏛️ Mahall Society Management</h1>
             </div>
           </header>
-          
+
           <main>
             {activeTab === 'dashboard' && (
               <div className="data-section">

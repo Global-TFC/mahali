@@ -15,13 +15,13 @@ import Subcollections from './Subcollections'
 import Obligations from './Obligations'
 import DataManagement from './DataManagement'
 import EditForm from './EditForm'
-import MemberModal from './MemberModal'
+
 import DeleteConfirmModal from './DeleteConfirmModal'
 import SubcollectionModal from './SubcollectionModal'
 import CollectionModal from './CollectionModal'
 import ObligationModal from './ObligationModal'
 import PaymentConfirmModal from './PaymentConfirmModal'
-import BulkObligationModal from './BulkObligationModal'
+
 
 import './App.css'
 
@@ -34,10 +34,9 @@ const AppRoutes = ({
   setEditing, deleteItem, loadDataForTab, setSelectedCollection,
   setSelectedSubcollection, exportData, importData, exportProgress,
   importProgress, isBusy, setFormData, formData, handleSubmit,
-  isModalOpen, setIsModalOpen, isDeleteModalOpen, setIsDeleteModalOpen,
-  currentMember, setCurrentMember, memberToDelete, setMemberToDelete,
-  handleAddMember, handleEditMember, handleDeleteMember, handleModalClose,
-  handleDeleteModalClose, confirmDelete,
+  isDeleteModalOpen, setIsDeleteModalOpen,
+  memberToDelete, setMemberToDelete,
+  handleDeleteMember, handleDeleteModalClose, confirmDelete,
   selectedCollection, selectedSubcollection,
   // Subcollection modal props
   isSubcollectionModalOpen, setIsSubcollectionModalOpen,
@@ -56,7 +55,7 @@ const AppRoutes = ({
   handleAddObligation,
   // Payment confirmation props
   handlePayObligation,
-  handleAddBulkObligation
+  handlePayObligation
 }) => {
   const location = useLocation();
 
@@ -147,7 +146,7 @@ const AppRoutes = ({
           handleAddObligation={handleAddObligation}
           handleEditObligation={handleEditObligation}
           handlePayObligation={handlePayObligation}
-          handleAddBulkObligation={handleAddBulkObligation}
+
         />
       } />
       <Route path="/data" element={
@@ -183,9 +182,7 @@ function App() {
   const [importProgress, setImportProgress] = useState(null)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [currentMember, setCurrentMember] = useState(null)
   const [memberToDelete, setMemberToDelete] = useState(null)
 
   // State for SubcollectionModal
@@ -201,7 +198,7 @@ function App() {
   const [currentObligation, setCurrentObligation] = useState(null)
 
   // State for Bulk Obligation Modal
-  const [isBulkObligationModalOpen, setIsBulkObligationModalOpen] = useState(false)
+
 
   // State for PaymentConfirmModal
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -470,16 +467,6 @@ function App() {
     }
   }
 
-  const handleAddMember = () => {
-    setCurrentMember(null)
-    setIsModalOpen(true)
-  }
-
-  const handleEditMember = (member) => {
-    setCurrentMember(member)
-    setIsModalOpen(true)
-  }
-
   const handleDeleteMember = (member) => {
     setMemberToDelete(member)
     setIsDeleteModalOpen(true)
@@ -493,11 +480,6 @@ function App() {
       // Reload member data after deletion
       loadDataForTab('members', true) // Force reload
     }
-  }
-
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setCurrentMember(null)
   }
 
   const handleDeleteModalClose = () => {
@@ -629,30 +611,7 @@ function App() {
     }
   }
 
-  // Handler functions for bulk obligations
-  const handleBulkObligationSubmit = async (obligationsData) => {
-    try {
-      await obligationAPI.bulkCreate(obligationsData)
-      // Reload obligations data
-      loadDataForTab('obligations', true)
-      return Promise.resolve()
-    } catch (error) {
-      console.error('Failed to create bulk obligations:', error)
-      throw error
-    }
-  }
 
-  const handleAddBulkObligation = () => {
-    if (!selectedSubcollection) {
-      alert('Please navigate to obligations from a specific subcollection. Go to Collections → Subcollections and select a subcollection first.')
-      return
-    }
-    setIsBulkObligationModalOpen(true)
-  }
-
-  const handleBulkObligationModalClose = () => {
-    setIsBulkObligationModalOpen(false)
-  }
 
   // Handler functions for payment confirmation
   const handlePayObligation = (obligation) => {
@@ -747,18 +706,11 @@ function App() {
               setFormData={setFormData}
               formData={formData}
               handleSubmit={handleSubmit}
-              isModalOpen={isModalOpen}
-              setIsModalOpen={setIsModalOpen}
               isDeleteModalOpen={isDeleteModalOpen}
               setIsDeleteModalOpen={setIsDeleteModalOpen}
-              currentMember={currentMember}
-              setCurrentMember={setCurrentMember}
               memberToDelete={memberToDelete}
               setMemberToDelete={setMemberToDelete}
-              handleAddMember={handleAddMember}
-              handleEditMember={handleEditMember}
               handleDeleteMember={handleDeleteMember}
-              handleModalClose={handleModalClose}
               handleDeleteModalClose={handleDeleteModalClose}
               confirmDelete={confirmDelete}
               selectedCollection={selectedCollection}
@@ -789,7 +741,7 @@ function App() {
               handleAddObligation={handleAddObligation}
               // Payment confirmation props
               handlePayObligation={handlePayObligation}
-              handleAddBulkObligation={handleAddBulkObligation}
+
             />
 
             {editing && editing.type !== 'collections' && editing.type !== 'subcollections' && editing.type !== 'obligations' && (
@@ -803,12 +755,7 @@ function App() {
               />
             )}
 
-            <MemberModal
-              isOpen={isModalOpen}
-              onClose={handleModalClose}
-              initialData={currentMember}
-              loadDataForTab={loadDataForTab}
-            />
+
 
             <DeleteConfirmModal
               isOpen={isDeleteModalOpen}
@@ -842,13 +789,7 @@ function App() {
               selectedSubcollection={selectedSubcollection}
             />
 
-            <BulkObligationModal
-              isOpen={isBulkObligationModalOpen}
-              onClose={handleBulkObligationModalClose}
-              onSubmit={handleBulkObligationSubmit}
-              selectedSubcollection={selectedSubcollection}
-              existingObligations={memberObligations.filter(ob => ob.subcollection === selectedSubcollection?.id)}
-            />
+
 
             <PaymentConfirmModal
               isOpen={isPaymentModalOpen}

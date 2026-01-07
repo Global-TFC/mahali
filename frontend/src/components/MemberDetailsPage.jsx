@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { memberAPI, houseAPI, areaAPI, obligationAPI, subcollectionAPI } from '../api';
 import { FaUser, FaHome, FaMapMarkerAlt, FaPhone, FaBirthdayCake, FaEdit, FaTrash, FaArrowLeft } from 'react-icons/fa';
-import MemberModal from './MemberModal';
+
 import DeleteConfirmModal from './DeleteConfirmModal';
 import './App.css';
 
@@ -15,7 +15,7 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
   const [obligations, setObligations] = useState([]);
   const [subcollections, setSubcollections] = useState([]);
 
@@ -65,7 +65,7 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
   }, [stableMemberId]); // Only depend on stableMemberId
 
   const handleEditMember = () => {
-    setIsEditModalOpen(true);
+    navigate(`/members/edit/${member.member_id}`);
   };
 
   const handleDeleteMember = () => {
@@ -108,16 +108,7 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
     navigate('/members');
   };
 
-  const handleEditModalClose = () => {
-    setIsEditModalOpen(false);
-  };
 
-  const handleEditSuccess = async () => {
-    // Reload the member data after successful edit
-    if (stableMemberId) {
-      await loadMemberData();
-    }
-  };
 
   if (loading) {
     return (
@@ -152,6 +143,9 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
   // Prepare member data for table display (excluding fields already shown in ATM cards)
   const memberData = [
     { label: 'Member ID', value: `#${member?.member_id || 'N/A'}` },
+    { label: 'Gender', value: member?.gender ? (member.gender.charAt(0).toUpperCase() + member.gender.slice(1)) : 'N/A' },
+    { label: 'Married To', value: member?.married_to_name ? `${member.married_to_name} ${member.married_to_surname || ''}` + (member.married_to ? ` (#${member.married_to})` : '') : 'N/A' },
+    { label: 'General Body Member', value: member?.general_body_member ? 'Yes' : 'No' },
     { label: 'Aadhar Number', value: member?.adhar || 'N/A' },
     { label: 'WhatsApp', value: member?.whatsapp || 'N/A' },
     { label: 'House ID', value: `#${house?.home_id || 'N/A'}` },
@@ -304,14 +298,7 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
         </div>
       </div>
 
-      {/* Edit Member Modal */}
-      <MemberModal
-        isOpen={isEditModalOpen}
-        onClose={handleEditModalClose}
-        onSubmit={handleEditSuccess}
-        initialData={member}
-        loadDataForTab={loadDataForTab}
-      />
+
 
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}

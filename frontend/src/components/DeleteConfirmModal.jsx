@@ -2,6 +2,9 @@ import React from 'react';
 import { FaTrash, FaTimes } from 'react-icons/fa';
 
 const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, item, itemType }) => {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
   if (!isOpen) return null;
 
   const getItemDisplay = () => {
@@ -24,79 +27,57 @@ const DeleteConfirmModal = ({ isOpen, onClose, onConfirm, item, itemType }) => {
     return 'this item';
   };
 
+  const handleConfirm = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await onConfirm();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || err.response?.data?.message || err.message || 'Failed to delete item');
+      console.error('Delete error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="modal-overlay">
-      <div className="modal-content animate-in" style={{ maxWidth: '450px' }}>
+      <div className="modal-content delete-modal-content animate-in">
         <div className="modal-header">
-          <h2>
-            <div className="header-icon-wrapper" style={{ background: 'var(--success-gradient)' }}>
-              <FaCheck />
-            </div>
-            Confirm Payment
-          </h2>
+          <h2>Delete {itemType?.slice(0, -1)}?</h2>
           <button className="close-btn" onClick={onClose}><FaTimes /></button>
         </div>
 
         <div className="modal-body">
-          <div className="payment-details" style={{ background: 'var(--header-bg)', borderRadius: '16px', padding: '20px', marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '0.9rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>Summary</h3>
-            <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span className="label" style={{ color: 'var(--text-muted)' }}>Member:</span>
-              <span className="value" style={{ fontWeight: 600 }}>{obligation?.member?.name || 'Unknown Member'}</span>
-            </div>
-            <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span className="label" style={{ color: 'var(--text-muted)' }}>Collection:</span>
-              <span className="value" style={{ fontWeight: 600 }}>{obligation?.subcollection?.name || 'N/A'}</span>
-            </div>
-            <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span className="label" style={{ color: 'var(--text-muted)' }}>Amount:</span>
-              <span className="value" style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '1.2rem' }}>₹{obligation?.amount || '0.00'}</span>
-            </div>
-            <div className="detail-row" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span className="label" style={{ color: 'var(--text-muted)' }}>Current Status:</span>
-              <span className={`status-badge ${obligation?.paid_status || 'pending'}`}>
-                {obligation?.paid_status || 'pending'}
-              </span>
-            </div>
+          <div className="delete-simple-message">
+            <FaTrash className="delete-simple-icon" />
+            <h3>Confirm permanent deletion</h3>
+            <p>Are you sure you want to delete <strong>{getItemDisplay()}</strong>? This action cannot be undone and all associated data will be lost.</p>
           </div>
 
-          <p style={{ textAlign: 'center', color: 'var(--text)', marginBottom: '24px' }}>
-            Are you sure you want to mark this obligation as <strong>fully paid</strong>?
-          </p>
-
           {error && (
-            <div className="status-banner error" style={{ marginBottom: '24px' }}>
+            <div className="status-banner error" style={{ marginBottom: '16px' }}>
               {error}
             </div>
           )}
 
-          <div className="form-actions" style={{ gap: '12px' }}>
+          <div className="delete-actions-simple">
             <button
               type="button"
-              className="btn-secondary"
+              className="cancel-btn-simple"
               onClick={onClose}
               disabled={loading}
-              style={{ flex: 1 }}
             >
               Cancel
             </button>
             <button
               type="button"
-              className="btn-primary"
+              className="delete-btn-simple"
               onClick={handleConfirm}
               disabled={loading}
-              style={{ flex: 2 }}
             >
-              {loading ? (
-                <>
-                  <span className="spinner"></span>
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <FaCheck /> Confirm Payment
-                </>
-              )}
+              {loading ? 'Deleting...' : 'Delete Permanently'}
             </button>
           </div>
         </div>

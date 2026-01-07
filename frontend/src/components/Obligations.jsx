@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { FaArrowLeft, FaPlus, FaRupeeSign, FaEdit, FaTrash, FaCheck, FaSearch, FaChevronLeft, FaChevronRight, FaRedo, FaUsers } from 'react-icons/fa'
+import DeleteConfirmModal from './DeleteConfirmModal'
 import ObligationAnalytics from './ObligationAnalytics'
-import BulkObligationModal from './BulkObligationModal'
 import { areaAPI, obligationAPI, memberAPI } from '../api'
 
 const Obligations = ({
@@ -20,6 +21,7 @@ const Obligations = ({
   loadDataForTab,
   setActiveTab
 }) => {
+  const navigate = useNavigate();
   const analyticsRef = useRef();
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedArea, setSelectedArea] = useState('')
@@ -32,9 +34,10 @@ const Obligations = ({
   const [areas, setAreas] = useState([])
   const [loading, setLoading] = useState(false)
   const [localObligations, setLocalObligations] = useState([])
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // State for bulk add modal
-  const [showBulkAddModal, setShowBulkAddModal] = useState(false);
+  // State for bulk add modal // Removed
+  // const [showBulkAddModal, setShowBulkAddModal] = useState(false); // Removed
 
   // Get all areas for filtering
   useEffect(() => {
@@ -110,31 +113,31 @@ const Obligations = ({
 
   // Bulk add modal functions
   const handleBulkAddOpen = () => {
-    setShowBulkAddModal(true);
+    navigate('/obligations/bulk-add', { state: { selectedSubcollection } });
   };
 
-  const handleBulkAddSubmit = async (data) => {
-    try {
-      setLoading(true);
+  // const handleBulkAddSubmit = async (data) => { // Removed
+  //   try {
+  //     setLoading(true);
 
-      // Use bulk create API to create all obligations at once
-      await obligationAPI.bulkCreate(data);
+  //     // Use bulk create API to create all obligations at once
+  //     await obligationAPI.bulkCreate(data);
 
-      // Reload obligations data
-      if (loadDataForTab) {
-        await loadDataForTab('obligations', true);
-      }
+  //     // Reload obligations data
+  //     if (loadDataForTab) {
+  //       await loadDataForTab('obligations', true);
+  //     }
 
-      // Close the modal
-      setShowBulkAddModal(false);
+  //     // Close the modal
+  //     setShowBulkAddModal(false);
 
-    } catch (error) {
-      console.error('Failed to create bulk obligations:', error);
-      throw error; // Re-throw to let the modal handle the error
-    } finally {
-      setLoading(false);
-    }
-  };
+  //   } catch (error) {
+  //     console.error('Failed to create bulk obligations:', error);
+  //     throw error; // Re-throw to let the modal handle the error
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // Pagination
   const indexOfLastItem = currentPage * itemsPerPage
@@ -250,46 +253,41 @@ const Obligations = ({
     setSelectAll(false)
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedObligations.length === 0) {
       alert('Please select obligations to delete')
       return
     }
+    setIsDeleteModalOpen(true);
+  }
 
-    const memberNames = selectedObligations.map(id => {
-      const ob = filteredObligations.find(o => o.id === id)
-      return ob?.member?.name || 'Unknown Member'
-    }).join(', ')
+  const confirmBulkDelete = async () => {
+    try {
+      setLoading(true)
 
-    if (window.confirm(`Are you sure you want to delete ${selectedObligations.length} obligation(s)?\n\nMembers: ${memberNames}`)) {
-      try {
-        setLoading(true)
+      // Delete each obligation
+      const deletePromises = selectedObligations.map(id => deleteItem('obligations', id))
+      await Promise.all(deletePromises)
 
-        // Delete each obligation
-        const deletePromises = selectedObligations.map(id => deleteItem('obligations', id))
-        await Promise.all(deletePromises)
+      // Clear selection
+      setSelectedObligations([])
+      setSelectAll(false)
+      setIsDeleteModalOpen(false);
 
-        alert(`Successfully deleted ${selectedObligations.length} obligation(s)`)
-
-        // Clear selection
-        setSelectedObligations([])
-        setSelectAll(false)
-
-        // Reload data to reflect changes
-        if (loadDataForTab) {
-          await loadDataForTab('obligations', true)
-        }
-
-        // Refresh analytics using ref
-        if (analyticsRef.current && analyticsRef.current.refreshAnalytics) {
-          analyticsRef.current.refreshAnalytics();
-        }
-      } catch (error) {
-        console.error('Failed to delete obligations:', error)
-        alert('Failed to delete obligations. Please try again.')
-      } finally {
-        setLoading(false)
+      // Reload data to reflect changes
+      if (loadDataForTab) {
+        await loadDataForTab('obligations', true)
       }
+
+      // Refresh analytics using ref
+      if (analyticsRef.current && analyticsRef.current.refreshAnalytics) {
+        analyticsRef.current.refreshAnalytics();
+      }
+    } catch (error) {
+      console.error('Failed to delete obligations:', error)
+      throw error;
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -435,7 +433,7 @@ const Obligations = ({
               <input
                 type="text"
                 id="search"
-                placeholder="Name or ID..."
+                placeholder="Search by Member ID, Name or Surname..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
@@ -450,7 +448,8 @@ const Obligations = ({
                 id="area-filter"
                 value={selectedArea}
                 onChange={(e) => setSelectedArea(e.target.value)}
-                className="filter-select"
+                className="filter-select form-input"
+              // className=''
               >
                 <option value="">All Regions</option>
                 {areas.map(area => (
@@ -526,7 +525,9 @@ const Obligations = ({
                       onChange={() => handleSelectObligation(obligation.id)}
                     />
                   </td>
-                  <td className="font-semibold">{obligation.member?.name || 'Unknown Member'}</td>
+                  <td className="font-semibold">
+                    {`${obligation.member?.member_id} - ${obligation.member?.name || 'Unknown'}`}
+                  </td>
                   <td>
                     <span className="badge-outline">{getAreaName(obligation)}</span>
                   </td>
@@ -584,14 +585,14 @@ const Obligations = ({
           </button>
         </div>
       )}
+      {/* Pagination component removed for clarity in this view */}
 
-      {/* Bulk Obligation Modal */}
-      <BulkObligationModal
-        isOpen={showBulkAddModal}
-        onClose={() => setShowBulkAddModal(false)}
-        onSubmit={handleBulkAddSubmit}
-        selectedSubcollection={selectedSubcollection}
-        existingObligations={localObligations}
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmBulkDelete}
+        item={{ name: `${selectedObligations.length} selected obligations` }}
+        itemType="obligations"
       />
     </div>
   )

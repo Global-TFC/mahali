@@ -33,21 +33,92 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  transition: all var(--transition-normal);
+  transition: width var(--transition-normal), background var(--transition-normal);
+  position: relative;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.sidebar.collapsed {
+  width: 80px !important;
+  min-width: 80px !important;
+  max-width: 80px !important;
+  /* padding: 20px 8px; */
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar.collapsed .sidebar-header {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  justify-content: center;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar.collapsed .logo-container {
+  justify-content: center;
 }
 
 .sidebar-header h2 {
-  margin: 0 0 32px 0;
-  /* More breathing room */
-  font-size: 1.75rem;
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1;
   letter-spacing: -0.03em;
   background: var(--accent-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-  padding-bottom: 24px;
-  border-bottom: 1px solid var(--border);
-  text-align: center;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+/* Toggle button positioned on the border */
+.collapse-toggle {
+  position: absolute;
+  right: -14px;
+  top: 50px;
+  /* Perfectly centered with logo and text center */
+  width: 15px;
+  height: 15px;
+  padding: 0px 0px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  cursor: pointer;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all var(--transition-fast);
+}
+
+.collapse-toggle:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: scale(1.1);
+}
+
+.sidebar.collapsed .collapse-toggle {
+  right: -14px;
 }
 
 .sidebar-nav {
@@ -74,6 +145,17 @@
   transition: all var(--transition-fast);
 }
 
+.sidebar.collapsed .sidebar-nav button {
+  padding: 12px;
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar.collapsed .tab-icon {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
 .sidebar-nav button:hover {
   background: rgba(99, 102, 241, 0.08);
   color: var(--primary);
@@ -84,6 +166,11 @@
   background: var(--primary);
   color: white;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.arrow-btn {
+  font-size: 5px;
+  width: 50px;
 }
 
 .sidebar-footer {
@@ -362,11 +449,11 @@ select,
 textarea {
   width: 100%;
   padding: 12px 16px;
-  background: var(--bg-color);
+  background: var(--input-bg);
   /* Slight contrast from card surface */
   border: 1px solid var(--border);
   border-radius: 10px;
-  color: var(--text-color);
+  color: var(--input-text);
   font-size: 1rem;
   font-family: inherit;
   transition: all var(--transition-fast);
@@ -1103,4 +1190,189 @@ button[type="submit"]:hover {
   .atm-card {
     min-width: 100%;
   }
+}
+
+/* =========================================
+   RESPONSIVE MODAL & FORM STYLES
+   ========================================= */
+
+.form-row>.input-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-form-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-content {
+  background: var(--surface);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  position: relative;
+  /* Reset margins as we use flex centering now */
+  margin: 0;
+}
+
+.modal-content-wide {
+  max-width: 800px;
+}
+
+.modal-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.modal-body {
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: var(--text-color);
+}
+
+@media (max-width: 768px) {
+  .member-form-container {
+    padding: 16px;
+    margin: 0;
+    max-width: 100%;
+  }
+
+  .modal-content {
+    width: 95%;
+    max-height: 96vh;
+    border-radius: 16px;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+  }
+
+  .modal-body {
+    padding: 16px 20px;
+  }
+
+  .data-section {
+    padding: 20px;
+  }
+}
+
+/* =========================================
+   SIMPLE & PROFESSIONAL DELETE MODAL
+   ========================================= */
+
+.delete-modal-content {
+  max-width: 400px;
+  border-radius: 12px;
+}
+
+.delete-modal-content .modal-header {
+  border-bottom: none;
+  padding: 24px 24px 8px;
+}
+
+.delete-modal-content .modal-header h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.delete-modal-content .modal-body {
+  padding: 8px 24px 24px;
+}
+
+.delete-simple-icon {
+  color: #ef4444;
+  font-size: 1.5rem;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.delete-simple-message h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-color);
+}
+
+.delete-simple-message p {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.delete-actions-simple {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.delete-actions-simple button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all var(--transition-fast);
+}
+
+.delete-btn-simple {
+  background: #ef4444;
+  color: white;
+  border: none;
+}
+
+.delete-btn-simple:hover {
+  background: #dc2626;
+}
+
+.cancel-btn-simple {
+  background: var(--header-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border);
+}
+
+.cancel-btn-simple:hover {
+  background: var(--border);
 }

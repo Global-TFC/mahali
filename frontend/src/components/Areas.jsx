@@ -1,22 +1,19 @@
 import React, { useState } from 'react'
 import { FaMapMarkerAlt, FaRedo, FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
-import AreaModal from './AreaModal'
+import { useNavigate } from 'react-router-dom'
 import DeleteConfirmModal from './DeleteConfirmModal'
 
 const Areas = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const navigate = useNavigate()
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [currentArea, setCurrentArea] = useState(null)
   const [areaToDelete, setAreaToDelete] = useState(null)
 
   const handleAddArea = () => {
-    setCurrentArea(null)
-    setIsModalOpen(true)
+    navigate('/areas/add')
   }
 
   const handleEditArea = (area) => {
-    setCurrentArea(area)
-    setIsModalOpen(true)
+    navigate(`/areas/edit/${area.id}`)
   }
 
   const handleDeleteArea = (area) => {
@@ -34,19 +31,6 @@ const Areas = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
         loadDataForTab('areas', true) // Force reload
       }
     }
-  }
-
-  const handleModalSubmit = (formData) => {
-    setEditing({
-      type: 'areas',
-      data: currentArea ? { ...currentArea, ...formData } : formData
-    })
-    setIsModalOpen(false)
-  }
-
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setCurrentArea(null)
   }
 
   const handleDeleteModalClose = () => {
@@ -126,14 +110,6 @@ const Areas = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
           </tbody>
         </table>
       </div>
-
-      <AreaModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        onSubmit={handleModalSubmit}
-        initialData={currentArea}
-        loadDataForTab={loadDataForTab}
-      />
 
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}

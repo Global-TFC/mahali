@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FaHome, FaEdit, FaTrash } from 'react-icons/fa'
-import HouseModal from './HouseModal'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import { houseAPI, areaAPI } from '../api'
 
 const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
   const navigate = useNavigate();
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  // const [isModalOpen, setIsModalOpen] = useState(false) // Removed
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [currentHouse, setCurrentHouse] = useState(null)
+  // const [currentHouse, setCurrentHouse] = useState(null) // Removed
   const [houseToDelete, setHouseToDelete] = useState(null)
   const [houseList, setHouseList] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
@@ -101,13 +100,11 @@ const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
   }, [searchTerm, selectedArea]); // Correct dependency array - only depend on search params
 
   const handleAddHouse = () => {
-    setCurrentHouse(null)
-    setIsModalOpen(true)
+    navigate('/houses/add');
   }
 
   const handleEditHouse = (house) => {
-    setCurrentHouse(house)
-    setIsModalOpen(true)
+    navigate(`/houses/edit/${house.home_id}`);
   }
 
   const handleDeleteHouse = (house) => {
@@ -134,10 +131,10 @@ const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
     loadHouses(currentPage);
   }
 
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setCurrentHouse(null)
-  }
+  // const handleModalClose = () => { // Removed
+  //   setIsModalOpen(false)
+  //   setCurrentHouse(null)
+  // }
 
   const handleDeleteModalClose = () => {
     setIsDeleteModalOpen(false)
@@ -187,7 +184,7 @@ const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
               <input
                 type="text"
                 id="house-search"
-                placeholder="Name, family, or location..."
+                placeholder="Search by ID, Name, Family or Location..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="search-input"
@@ -300,14 +297,6 @@ const Houses = ({ areas, setEditing, deleteItem, loadDataForTab }) => {
           </button>
         </div>
       )}
-
-      <HouseModal
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        initialData={currentHouse}
-        areas={localAreas}
-        loadDataForTab={loadDataForTab}
-      />
 
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}

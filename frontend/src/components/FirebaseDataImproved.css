@@ -587,11 +587,9 @@
 
 .cancel-btn:disabled {
   opacity: 0.6;
-}
-
-cursor: not-allowed;
-transform: none;
-box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Loading and error states */
@@ -871,7 +869,8 @@ box-shadow: none;
   min-height: 50px;
   width: 100%;
   box-sizing: border-box;
-  background: #ffffff;
+  background: var(--input-bg);
+  color: var(--input-text);
 }
 
 .form-input:focus {

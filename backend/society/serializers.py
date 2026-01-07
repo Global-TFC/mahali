@@ -65,6 +65,11 @@ class MemberSerializer(serializers.ModelSerializer):
         slug_field='member_id',
         required=False
     )
+    married_to = serializers.SlugRelatedField(
+        queryset=Member.objects.all(),
+        slug_field='member_id',
+        required=False
+    )
 
     class Meta:
         model = Member

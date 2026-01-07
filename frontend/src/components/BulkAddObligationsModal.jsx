@@ -59,9 +59,12 @@ const BulkAddObligationsModal = ({
 
     // Filter by search term
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(member =>
-        member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        member.id.toString().includes(searchTerm)
+        (member.name && member.name.toLowerCase().includes(term)) ||
+        (member.surname && member.surname.toLowerCase().includes(term)) ||
+        (member.member_id && member.member_id.toString().includes(term)) ||
+        (member.id && member.id.toString().includes(term))
       );
     }
 
@@ -197,7 +200,7 @@ const BulkAddObligationsModal = ({
                 <input
                   type="text"
                   id="bulk-add-search"
-                  placeholder="Name or ID..."
+                  placeholder="Search ID, Name or Surname..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -263,7 +266,9 @@ const BulkAddObligationsModal = ({
                           style={{ width: '18px', height: '18px' }}
                         />
                       </td>
-                      <td style={{ fontWeight: 600 }}>{member.name}</td>
+                      <td style={{ fontWeight: 600 }}>
+                        {`${member.member_id || member.id} - ${member.name} ${member.surname || ''}`}
+                      </td>
                       <td>{member.house?.area?.name || 'N/A'}</td>
                       <td>
                         {member.isguardian ?
