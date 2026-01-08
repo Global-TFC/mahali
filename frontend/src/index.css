@@ -138,6 +138,7 @@ body.theme-light {
 
   --input-bg: #ffffff;
   --input-text: #000000;
+  --primary-rgb: 99, 102, 241;
 
   background-color: var(--bg-color);
   color: var(--text-color);
@@ -172,6 +173,7 @@ body.theme-dim {
 
   --input-bg: var(--bg-color);
   --input-text: var(--text-color);
+  --primary-rgb: 129, 140, 248;
 
   background-color: var(--bg-color);
   color: var(--text-color);
@@ -199,6 +201,7 @@ body.theme-dark {
 
   --input-bg: var(--bg-color);
   --input-text: var(--text-color);
+  --primary-rgb: 56, 189, 248;
 
   background-color: var(--bg-color);
   color: var(--text-color);

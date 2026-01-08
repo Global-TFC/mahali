@@ -175,7 +175,8 @@ const MemberDetailsPage = ({ members: initialMembers, houses, areas, setEditing,
           <div className="profile-header">
             <div className="top-bar">
               <button onClick={handleBack} className="back-btn-corner" title="Back">
-                <FaArrowLeft size={14} />
+                {/* <FaArrowLeft size={14} /> */}
+                <span style={{ fontSize: '12px' }}>Back</span>
               </button>
 
               <div className="live-badge">
@@ -410,7 +411,7 @@ const MemberDetailsPage = ({ members: initialMembers, houses, areas, setEditing,
                 </tbody>
               </table>
             ) : (
-              <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', color: '#888' }}>
+              <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--text-muted)' }}>
                 <p>No obligations found.</p>
               </div>
             )}

@@ -140,7 +140,8 @@ const HouseDetailsPage = ({ houses, members, areas, subcollections, setEditing, 
           <h2>House not found</h2>
           <p>Could not find house with ID: {stableHouseId}</p>
           <button onClick={handleBack} className="back-btn">
-            <FaArrowLeft /> Back to Houses
+            {/* <FaArrowLeft /> */}
+            <span style={{ fontSize: '12px' }}>Back</span>
           </button>
         </div>
       </div>
@@ -158,7 +159,8 @@ const HouseDetailsPage = ({ houses, members, areas, subcollections, setEditing, 
         <div className="detail-card house-profile-card">
           <div className="profile-header">
             <button onClick={handleBack} className="back-btn-corner" title="Back">
-              <FaArrowLeft size={14} />
+              {/* <FaArrowLeft size={14} /> */}
+              <span style={{ fontSize: '12px' }}>Back</span>
             </button>
 
             <div className="house-avatar-large">
@@ -298,7 +300,7 @@ const HouseDetailsPage = ({ houses, members, areas, subcollections, setEditing, 
                 </tbody>
               </table>
             ) : (
-              <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#888', minHeight: '150px' }}>
+              <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)', minHeight: '150px' }}>
                 <p>No obligations found for this house.</p>
               </div>
             )}
