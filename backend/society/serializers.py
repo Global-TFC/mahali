@@ -28,44 +28,76 @@ class HouseSerializer(serializers.ModelSerializer):
 
 class HouseListSerializer(serializers.ModelSerializer):
     """Serializer for house listing that includes area name and member count"""
-    area_name = serializers.CharField(source='area.name', read_only=True)
+    area_name = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
     
     class Meta:
         model = House
         fields = ['home_id', 'house_name', 'family_name', 'location_name', 'area_name', 'member_count']
     
+    def get_area_name(self, obj):
+        try:
+            return obj.area.name if obj.area else None
+        except Exception:
+            return None
+            
     def get_member_count(self, obj):
         # Use the related manager to count members
         return obj.members.count()
 
 
 class HouseDetailSerializer(serializers.ModelSerializer):
-    area_name = serializers.CharField(source='area.name', read_only=True)
+    area_name = serializers.SerializerMethodField()
     
     class Meta:
         model = House
         fields = ['home_id', 'house_name', 'family_name', 'location_name', 'area_name']
 
+    def get_area_name(self, obj):
+        try:
+            return obj.area.name if obj.area else None
+        except Exception:
+            return None
+
+
+class SafeSlugRelatedField(serializers.SlugRelatedField):
+    """
+    A SlugRelatedField that gracefully handles missing related objects (orphaned foreign keys).
+    If the related object does not exist (DoesNotExist), it returns None instead of raising an error during serialization.
+    """
+    def to_representation(self, value):
+        # In DRF, value is usually the related object instance.
+        # But if the instance was retrieved via descriptor that failed, it might be an issue?
+        # Actually, DRF calls get_attribute first.
+        return super().to_representation(value)
+
+    def get_attribute(self, instance):
+        try:
+            # This calls the property on the instance which might raise DoesNotExist
+            return super().get_attribute(instance)
+        except Exception:
+            # If the relation is missing/broken, return None
+            return None
+
 
 class MemberSerializer(serializers.ModelSerializer):
     photo = serializers.ImageField(required=False)
-    house = serializers.SlugRelatedField(
+    house = SafeSlugRelatedField(
         queryset=House.objects.all(),
         slug_field='home_id',
         required=False
     )
-    father = serializers.SlugRelatedField(
+    father = SafeSlugRelatedField(
         queryset=Member.objects.all(),
         slug_field='member_id',
         required=False
     )
-    mother = serializers.SlugRelatedField(
+    mother = SafeSlugRelatedField(
         queryset=Member.objects.all(),
         slug_field='member_id',
         required=False
     )
-    married_to = serializers.SlugRelatedField(
+    married_to = SafeSlugRelatedField(
         queryset=Member.objects.all(),
         slug_field='member_id',
         required=False

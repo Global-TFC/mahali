@@ -190,7 +190,8 @@ const FirebaseDataImproved = () => {
     setSaving(true);
     try {
       const response = await houseAPI.create(houseData);
-      setCreatedHouseId(response.data.id); // Save the real ID
+      // MemberSerializer expects 'home_id' for the house slug field, not the database 'id'
+      setCreatedHouseId(response.data.home_id);
       setCurrentStep(2); // Move to members
     } catch (error) {
       alert('Failed to save house: ' + error.message);
@@ -216,7 +217,7 @@ const FirebaseDataImproved = () => {
         const memberPayload = {
           name: member.name,
           surname: member.surname,
-          date_of_birth: member.dob,
+          date_of_birth: member.dob || '1900-01-01', // Provide default if missing to prevent 400 error
           phone: member.phone,
           whatsapp: member.whatsapp,
           house: createdHouseId, // Link to the house just created
@@ -268,12 +269,12 @@ const FirebaseDataImproved = () => {
         const rels = relationships[member.member_id];
         if (rels) {
           const updatePayload = {};
-          // Only include if they are valid IDs
-          if (rels.fatherId) updatePayload.father_id = rels.fatherId;
-          if (rels.motherId) updatePayload.mother_id = rels.motherId;
+          // Match field names to MemberSerializer (SlugRelatedField)
+          if (rels.fatherId) updatePayload.father = rels.fatherId;
+          if (rels.motherId) updatePayload.mother = rels.motherId;
 
           if (Object.keys(updatePayload).length > 0) {
-            await memberAPI.update(member.member_id, updatePayload);
+            await memberAPI.partialUpdate(member.member_id, updatePayload);
           }
         }
       }

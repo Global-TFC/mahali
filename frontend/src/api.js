@@ -9,6 +9,7 @@ export const memberAPI = {
   get: (id) => api.get(`/members/${id}/`),
   create: (data) => api.post('/members/', data),
   update: (id, data) => api.put(`/members/${id}/`, data),
+  partialUpdate: (id, data) => api.patch(`/members/${id}/`, data),
   delete: (id) => api.delete(`/members/${id}/`),
   search: (params) => api.get('/members/search/', { params }),
 };
@@ -56,8 +57,8 @@ export const obligationAPI = {
   partialUpdate: (id, data) => api.patch(`/obligations/${id}/`, data),
   delete: (id) => api.delete(`/obligations/${id}/`),
   search: (params) => api.get('/obligations/search/', { params }),
-  statistics: (subcollectionId) => api.get('/obligations/statistics/', { 
-    params: { subcollection: subcollectionId } 
+  statistics: (subcollectionId) => api.get('/obligations/statistics/', {
+    params: { subcollection: subcollectionId }
   }),
   exportData: () => api.post('/obligations/export_data/', {}, {
     responseType: 'blob',
