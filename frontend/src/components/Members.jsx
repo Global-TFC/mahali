@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FaUser, FaEdit, FaTrash, FaEye, FaRedo } from 'react-icons/fa'
+import { FaUser, FaEdit, FaTrash, FaEye, FaRedo, FaFilter } from 'react-icons/fa'
 import DeleteConfirmModal from './DeleteConfirmModal'
 import { memberAPI, areaAPI } from '../api'
+import './Members.css'
 
 const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
   const [loading, setLoading] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
   const [isThrottling, setIsThrottling] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
 
   // Load areas for filtering
   useEffect(() => {
@@ -118,25 +120,17 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
   }, [searchTerm, selectedArea, selectedStatus, isGuardianFilter, throttledLoadMembers]);
 
   // Handle scroll for infinite loading
-  const handleScroll = useCallback(() => {
+  const handleScroll = useCallback((e) => {
+    // Use the target element (table container) for scroll detection instead of window
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+
     if (!hasMore || loading || initialLoad) return;
 
-    const scrollTop = document.documentElement.scrollTop;
-    const scrollHeight = document.documentElement.scrollHeight;
-    const clientHeight = document.documentElement.clientHeight;
-
-    // Check if user has scrolled to bottom (with 100px threshold)
-    if (scrollTop + clientHeight >= scrollHeight - 100) {
+    if (scrollTop + clientHeight >= scrollHeight - 50) {
       loadMembers(currentPage + 1, true);
       setCurrentPage(prev => prev + 1);
     }
   }, [hasMore, loading, initialLoad, currentPage, loadMembers]);
-
-  // Add scroll event listener
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleScroll]);
 
   const handleAddMember = () => {
     navigate('/members/add');
@@ -170,19 +164,18 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
     loadMembers(1, false);
   }
 
-  // const handleModalClose = () => { // Removed
-  //   setIsModalOpen(false)
-  //   setCurrentMember(null)
-  // }
-
   const handleDeleteModalClose = () => {
     setIsDeleteModalOpen(false)
     setMemberToDelete(null)
   }
 
+  const toggleFilters = () => {
+    setShowFilters(!showFilters)
+  }
+
   return (
-    <div className="data-section animate-in">
-      <div className="section-header">
+    <div className="data-section animate-in" style={{ padding: '0', overflow: 'hidden' }}>
+      <div className="section-header" style={{ padding: '24px 32px' }}>
         <h2>
           <div className="header-icon-wrapper">
             <FaUser />
@@ -190,6 +183,21 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
           Members
         </h2>
         <div className="header-actions">
+          <button
+            onClick={toggleFilters}
+            className={`header-btn filter-toggle-btn ${showFilters ? 'active' : ''}`}
+            title="Toggle Filters"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: showFilters ? 'var(--primary)' : 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid var(--border)',
+              color: showFilters ? 'white' : 'var(--text-muted)'
+            }}
+          >
+            <FaFilter />
+          </button>
           <button onClick={handleReloadData} className="reload-btn" title="Reload Data">
             <FaRedo />
           </button>
@@ -199,10 +207,10 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="filter-section">
+      {/* Collapsible Search and Filters */}
+      <div className={`filter-collapsible ${showFilters ? 'open' : ''}`}>
         <div className="form-row">
-          <div className="form-group">
+          <div className="form-group" style={{ flex: 2 }}>
             <label htmlFor="member-search">Global Search</label>
             <div className="input-wrapper">
               <input
@@ -268,7 +276,7 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
         </div>
       </div>
 
-      <div className="table-container">
+      <div className="members-table-container" onScroll={handleScroll}>
         <table>
           <thead>
             <tr>
@@ -314,7 +322,7 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
                     <div className="text-muted" style={{ fontSize: '0.8rem' }}>{member.whatsapp || ''}</div>
                   </td>
                   <td className="text-right">
-                    <div className="action-btn-group">
+                    <div className="action-btn-group" style={{ justifyContent: 'flex-end' }}>
                       <button onClick={() => handleViewMember(member)} className="view-btn" title="View Profile">
                         <FaEye />
                       </button>
@@ -337,15 +345,18 @@ const Members = ({ members, setEditing, deleteItem, loadDataForTab }) => {
                 </td>
               </tr>
             )}
+            {loading && (
+              <tr>
+                <td colSpan="7" className="text-center">
+                  <div className="loading-overlay-inline" style={{ padding: '20px' }}>
+                    <div className="spinner-small"></div>
+                    <p>Fetching members...</p>
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
-
-        {loading && (
-          <div className="loading-overlay-inline">
-            <div className="spinner-small"></div>
-            <p>Fetching members...</p>
-          </div>
-        )}
       </div>
 
       <DeleteConfirmModal

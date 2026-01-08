@@ -1,0 +1,98 @@
+/* Members.css */
+
+/* Table Container with Fixed Height and Scroll */
+.members-table-container {
+    max-height: calc(100vh - 280px);
+    /* Adjust based on header/footer height */
+    overflow-y: auto;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    position: relative;
+    background: var(--surface);
+}
+
+/* Sticky Header */
+.members-table-container table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--surface);
+    /* Ensure opaque background */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    /* Subtle shadow for depth */
+}
+
+/* Proportional Table Layout */
+.members-table-container table {
+    width: 100%;
+    table-layout: fixed;
+    /* Enforce fixed column widths if specified, or just proportional */
+    border-collapse: collapse;
+}
+
+/* Column Widths (Adjust percentages as needed) */
+.members-table-container th:nth-child(1) {
+    width: 80px;
+}
+
+/* ID */
+.members-table-container th:nth-child(2) {
+    width: 20%;
+}
+
+/* Full Name */
+.members-table-container th:nth-child(3) {
+    width: 20%;
+}
+
+/* Area / House */
+.members-table-container th:nth-child(4) {
+    width: 100px;
+}
+
+/* Status */
+.members-table-container th:nth-child(5) {
+    width: 100px;
+}
+
+/* Role */
+.members-table-container th:nth-child(6) {
+    width: 20%;
+}
+
+/* Contact Info */
+.members-table-container th:nth-child(7) {
+    width: 120px;
+}
+
+/* Actions */
+
+/* Filter Toggle Animation */
+.filter-collapsible {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, padding 0.3s ease, margin 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    margin-bottom: 0;
+    padding: 0 32px;
+    /* Horizontal padding matches container */
+}
+
+.filter-collapsible.open {
+    max-height: 500px;
+    /* Arbitrary large height */
+    opacity: 1;
+    margin-bottom: 24px;
+    padding: 24px 32px;
+    /* Vertical padding when open */
+    border-bottom: 1px solid var(--border);
+    background: rgba(var(--primary-rgb, 99, 102, 241), 0.03);
+    /* Subtle background tint */
+}
+
+/* Filter Button Active State */
+.filter-toggle-btn.active {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
