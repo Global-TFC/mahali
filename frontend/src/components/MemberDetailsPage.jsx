@@ -1,21 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { memberAPI, houseAPI, areaAPI, obligationAPI, subcollectionAPI } from '../api';
-import { FaUser, FaHome, FaMapMarkerAlt, FaPhone, FaBirthdayCake, FaEdit, FaTrash, FaArrowLeft } from 'react-icons/fa';
-import MemberModal from './MemberModal';
-import DeleteConfirmModal from './DeleteConfirmModal';
-import './App.css';
+import { FaUser, FaHome, FaMapMarkerAlt, FaPhone, FaBirthdayCake, FaEdit, FaTrash, FaArrowLeft, FaUsers, FaArrowRight, FaWhatsapp } from 'react-icons/fa';
 
-const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loadDataForTab }) => {
+import DeleteConfirmModal from './DeleteConfirmModal';
+import './MemberDetailsPage.css';
+
+const MemberDetailsPage = ({ members: initialMembers, houses, areas, setEditing, deleteItem, loadDataForTab }) => {
   const { memberId } = useParams();
   const navigate = useNavigate();
   const [member, setMember] = useState(null);
   const [house, setHouse] = useState(null);
   const [area, setArea] = useState(null);
+  const [familyMembers, setFamilyMembers] = useState([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [memberToDelete, setMemberToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('house'); // 'house' or 'family'
+  const [searchTerm, setSearchTerm] = useState('');
+
   const [obligations, setObligations] = useState([]);
   const [subcollections, setSubcollections] = useState([]);
 
@@ -28,27 +31,49 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
         setLoading(true);
         // Always fetch from API to get the latest data
         const memberResponse = await memberAPI.get(stableMemberId);
-        setMember(memberResponse.data);
-        
+        const currentMember = memberResponse.data;
+        setMember(currentMember);
+
         // Fetch house and area data
-        if (memberResponse.data.house) {
-          const houseResponse = await houseAPI.get(memberResponse.data.house);
+        if (currentMember.house) {
+          const houseResponse = await houseAPI.get(currentMember.house);
           setHouse(houseResponse.data);
-          
+
           if (houseResponse.data.area) {
             const areaResponse = await areaAPI.get(houseResponse.data.area);
             setArea(areaResponse.data);
           }
+
+          // Fetch family members (members in the same house)
+          try {
+            // We need to fetch all members then filter by house_id as there might not be a direct endpoint
+            // Optimization: If initialMembers is passed and has data, use it. Otherwise fetch.
+            let allMembers = [];
+            if (initialMembers && initialMembers.length > 0) {
+              allMembers = initialMembers;
+            } else {
+              const allMembersRes = await memberAPI.getAll();
+              allMembers = allMembersRes.data;
+            }
+
+            const family = allMembers.filter(m =>
+              m.house === currentMember.house ||
+              (typeof m.house === 'object' && m.house.id === currentMember.house)
+            );
+            setFamilyMembers(family);
+          } catch (famError) {
+            console.error("Error fetching family members", famError);
+          }
         }
-        
+
         // Fetch obligations for this member
         const obligationsResponse = await obligationAPI.getAll();
-        const memberObligations = obligationsResponse.data.filter(obligation => 
-          obligation.member === memberResponse.data.member_id ||
-          (typeof obligation.member === 'object' && obligation.member.member_id === memberResponse.data.member_id)
+        const memberObligations = obligationsResponse.data.filter(obligation =>
+          obligation.member === currentMember.member_id ||
+          (typeof obligation.member === 'object' && obligation.member.member_id === currentMember.member_id)
         );
         setObligations(memberObligations);
-        
+
         // Fetch subcollections
         const subcollectionsResponse = await subcollectionAPI.getAll();
         setSubcollections(subcollectionsResponse.data);
@@ -62,10 +87,10 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
     if (stableMemberId) {
       loadMemberData();
     }
-  }, [stableMemberId]); // Only depend on stableMemberId
+  }, [stableMemberId, initialMembers]);
 
   const handleEditMember = () => {
-    setIsEditModalOpen(true);
+    navigate(`/members/edit/${member.member_id}`);
   };
 
   const handleDeleteMember = () => {
@@ -81,9 +106,7 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
         await deleteItem('members', memberToDelete.member_id);
         setIsDeleteModalOpen(false);
         setMemberToDelete(null);
-        // Navigate back to members list
         navigate('/members');
-        // Reload member data after deletion
         if (loadDataForTab) {
           loadDataForTab('members', true);
         }
@@ -108,16 +131,11 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
     navigate('/members');
   };
 
-  const handleEditModalClose = () => {
-    setIsEditModalOpen(false);
-  };
-
-  const handleEditSuccess = async () => {
-    // Reload the member data after successful edit
-    if (stableMemberId) {
-      await loadMemberData();
-    }
-  };
+  const filteredObligations = obligations.filter(obs => {
+    const sub = subcollections.find(sc => sc.id === (typeof obs.subcollection === 'object' ? obs.subcollection.id : obs.subcollection));
+    const name = sub ? sub.name.toLowerCase() : '';
+    return name.includes(searchTerm.toLowerCase());
+  });
 
   if (loading) {
     return (
@@ -144,236 +162,261 @@ const MemberDetailsPage = ({ members, houses, areas, setEditing, deleteItem, loa
     );
   }
 
-  // Find the area for this house
-  const houseArea = area || (house?.area ? 
-    (typeof house.area === 'object' ? house.area : null) : 
-    null);
-
-  // Prepare member data for table display (excluding fields already shown in ATM cards)
-  const memberData = [
-    { label: 'Member ID', value: `#${member?.member_id || 'N/A'}` },
-    { label: 'Aadhar Number', value: member?.adhar || 'N/A' },
-    { label: 'WhatsApp', value: member?.whatsapp || 'N/A' },
-    { label: 'House ID', value: `#${house?.home_id || 'N/A'}` },
-    { label: 'Father\'s Name', value: member?.father_name ? `${member.father_name} ${member.father_surname || ''}` : 'N/A' },
-    { label: 'Mother\'s Name', value: member?.mother_name ? `${member.mother_name} ${member.mother_surname || ''}` : 'N/A' },
-    { label: 'Guardian', value: member?.isGuardian ? 'Yes' : 'No' },
-    { label: 'Date of Death', value: member?.date_of_death ? new Date(member.date_of_death).toLocaleDateString() : 'N/A' },
-    { label: 'Address', value: house?.address || 'N/A' }
-  ];
+  // Helper to get initials
+  const getInitials = (name) => {
+    return name ? name.charAt(0).toUpperCase() : '?';
+  };
 
   return (
-    <div className="data-section">
-      <div className="section-header">
-        <h2><FaUser /> Member Details</h2>
-        <div className="header-actions">
-          <button 
-            onClick={handleEditMember}
-            className="edit-btn"
-          >
-            <FaEdit /> Edit Member
-          </button>
-          <button 
-            onClick={handleDeleteMember}
-            className="delete-btn"
-          >
-            <FaTrash /> Delete Member
-          </button>
-          <button 
-            onClick={handleBack}
-            className="back-btn"
-          >
-            <FaArrowLeft /> Back to Members
-          </button>
+    <div className="member-details-wrapper animate-in">
+      {/* Left Column: Personal Details */}
+      <div className="left-column">
+        <div className="detail-card personal-details-card">
+          <div className="profile-header">
+            <div className="top-bar">
+              <button onClick={handleBack} className="back-btn-corner" title="Back">
+                {/* <FaArrowLeft size={14} /> */}
+                <span style={{ fontSize: '12px' }}>Back</span>
+              </button>
+
+              <div className="live-badge">
+                {member.status || 'Live'}
+              </div>
+            </div>
+            <div className="avatar-large">
+              {getInitials(member.name)}
+            </div>
+            <h2 className="member-name">{member.name}.{member.surname}</h2>
+            <div className="member-id-badge">ID: {member.member_id}</div>
+
+            <div style={{ marginTop: '16px', display: 'flex', gap: '8px' }}>
+              <button onClick={handleEditMember} className="btn-secondary" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                <FaEdit /> Edit
+              </button>
+              <button onClick={handleDeleteMember} className="delete-btn" style={{ padding: '6px 12px', fontSize: '0.85rem' }}>
+                <FaTrash />
+              </button>
+            </div>
+          </div>
+
+          <div className="personal-info-list">
+            <div className="info-item">
+              <div className="info-label">General Body Member</div>
+              <div className="info-value">{member.general_body_member ? 'Yes' : 'No'}</div>
+            </div>
+            <div className="info-item">
+              <div className="info-label">Guardian</div>
+              <div className="info-value">{member.isGuardian ? 'Yes' : 'No'}</div>
+            </div>
+            <div className="info-item">
+              <div className="info-label">Phone Numbers</div>
+              <div className="info-value"><FaPhone size={12} /> {member.phone || 'N/A'}</div>
+              {member.whatsapp && (
+                <div className="info-value" style={{ marginTop: '8px' }}>
+                  <a
+                    href={`https://wa.me/${member.whatsapp?.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="whatsapp-btn"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      color: '#25D366',
+                      textDecoration: 'none',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                      padding: '4px 8px',
+                      background: 'rgba(37, 211, 102, 0.1)',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    <FaWhatsapp size={16} /> Message
+                  </a>
+                </div>
+              )}
+            </div>
+            <div className="info-item">
+              <div className="info-label">Date of Birth</div>
+              <div className="info-value"><FaBirthdayCake size={12} /> {member.date_of_birth ? new Date(member.date_of_birth).toLocaleDateString() : 'N/A'}</div>
+            </div>
+            <div className="info-item">
+              <div className="info-label">Gender</div>
+              <div className="info-value">{member.gender || 'N/A'}</div>
+            </div>
+
+            <hr style={{ margin: '20px 0', border: '0', borderTop: '1px solid #eee' }} />
+
+            <div className="info-item">
+              <div className="info-label">Aadhar Number</div>
+              <div className="info-value blurred">{member.adhar || 'Unavailable'}</div>
+            </div>
+            <div className="info-item">
+              <div className="info-label">Father's Name</div>
+              <div className="info-value">{member.father_name || '---'}</div>
+            </div>
+            <div className="info-item">
+              <div className="info-label">Mother's Name</div>
+              <div className="info-value">{member.mother_name || '---'}</div>
+            </div>
+            <div className="info-item">
+              <div className="info-label">Spouse's Name</div>
+              <div className="info-value">{member.married_to_name || '---'}</div>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <div className="member-details-container">
-        {/* ATM Style Cards */}
-        <div className="atm-cards-row">
-          {/* Member ATM Card - Green Gradient */}
-          <div className="atm-card member-atm-card">
-            <div className="atm-card-header">
-              <div className="atm-card-icon">
-                <FaUser />
-              </div>
-              <div className="atm-card-title">Member Details</div>
-              <div className="atm-card-id">#{member?.member_id || 'N/A'}</div>
-            </div>
-            
-            <div className="atm-card-content">
-              <div className="atm-card-field">
-                <div className="atm-card-label">Full Name</div>
-                <div className="atm-card-value">{member?.name || 'Unknown Member'}</div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Phone</div>
-                <div className="atm-card-value">
-                  {member?.phone || member?.whatsapp || 'N/A'}
-                </div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">House - Area</div>
-                <div className="atm-card-value">
-                  {house?.house_name || 'N/A'} - {houseArea?.name || 'N/A'}
-                </div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">House ID</div>
-                <div className="atm-card-value">#{house?.home_id || 'N/A'}</div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Date of Birth</div>
-                <div className="atm-card-value">
-                  {member?.date_of_birth 
-                    ? new Date(member.date_of_birth).toLocaleDateString() 
-                    : 'N/A'}
-                </div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Father's Name</div>
-                <div className="atm-card-value">
-                  {member?.father_name 
-                    ? `${member.father_name} ${member.father_surname || ''}` 
-                    : 'N/A'}
-                </div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Status</div>
-                <div className="atm-card-value">
-                  <span className={`status-badge ${member?.status === 'live' ? 'active' : member?.status === 'dead' ? 'inactive' : 'terminated'}`}>
-                    {member?.status?.charAt(0).toUpperCase() + (member?.status?.slice(1) || '')}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* House ATM Card - Blue Gradient */}
-          <div className="atm-card house-atm-card">
-            <div className="atm-card-header">
-              <div className="atm-card-icon">
-                <FaHome />
-              </div>
-              <div className="atm-card-title">House Details</div>
-              <div className="atm-card-id">#{house?.home_id || 'N/A'}</div>
-            </div>
-            
-            <div className="atm-card-content">
-              <div className="atm-card-field">
-                <div className="atm-card-label">House Name</div>
-                <div className="atm-card-value">{house?.house_name || 'N/A'}</div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Family Name</div>
-                <div className="atm-card-value">{house?.family_name || 'N/A'}</div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Area</div>
-                <div className="atm-card-value">{houseArea?.name || 'N/A'}</div>
-              </div>
-              
-              <div className="atm-card-field">
-                <div className="atm-card-label">Location</div>
-                <div className="atm-card-value">
-                  <FaMapMarkerAlt /> {house?.location_name || 'N/A'}
-                </div>
-              </div>
-              
-              <div className="atm-card-field">
-                <button 
-                  onClick={handleViewHouse}
-                  className="view-house-btn"
-                >
-                  View House Details
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Member Full Details Section in Grid Format */}
-        <div className="member-full-details">
-          <div className="section-header">
-            <h3>Member Information</h3>
-            <button 
-              onClick={handleEditMember}
-              className="edit-btn"
+
+      {/* Right Column */}
+      <div className="right-column">
+
+        {/* Top Section: House & Family Tabs */}
+        <div className="detail-card top-section-card">
+          <div className="tabs-header">
+            <button
+              className={`tab-btn ${activeTab === 'house' ? 'active' : ''}`}
+              onClick={() => setActiveTab('house')}
             >
-              <FaEdit /> Edit Member
+              House Details
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'family' ? 'active' : ''}`}
+              onClick={() => setActiveTab('family')}
+            >
+              Family Members
             </button>
           </div>
-          
-          <div className="member-details-grid">
-            {memberData.map((item, index) => (
-              <div className="detail-item" key={index}>
-                <div className="detail-label">{item.label}</div>
-                <div className="detail-value">{item.value}</div>
+
+          <div className="tab-content">
+            {activeTab === 'house' && (
+              <div className="house-details-view animate-in">
+                {house ? (
+                  <div className="house-details-grid">
+                    <div className="house-info-box">
+                      <h3>Address Details</h3>
+                      <div className="info-item">
+                        <div className="info-label">House Name</div>
+                        <div className="info-value" style={{ fontSize: '1.2rem' }}>{house.house_name}</div>
+                      </div>
+                      <div className="info-item">
+                        <div className="info-label">Family Name</div>
+                        <div className="info-value">{house.family_name}</div>
+                      </div>
+
+                    </div>
+
+                    <div className="house-info-box">
+                      <h3>Location</h3>
+                      <div className="info-item">
+                        <div className="info-label">Location / Area</div>
+                        <div className="info-value">
+                          {house.location_name || 'N/A'}
+                          {area ? `, ${area.name}` : ''}
+                        </div>
+                      </div>
+                      <div className="info-item">
+                        <div className="info-label">Total Members</div>
+                        <div className="info-value">{familyMembers.length} Members</div>
+                      </div>
+
+                      <button onClick={handleViewHouse} className="btn-view-house">
+                        View Full House Details <FaArrowRight size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p>No house linked to this member.</p>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Obligations Section */}
-        <div className="dues-section">
-          <h3>Obligations</h3>
-          <div className="dues-content">
-            {obligations.length > 0 ? (
-              <div className="table-container-no-bg">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Subcollection</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {obligations.map(obligation => {
-                      // Find the subcollection details for this obligation
-                      const subcollection = subcollections.find(sc => sc.id === obligation.subcollection || sc.id === obligation.subcollection?.id);
-                      
-                      return (
-                        <tr key={obligation.id}>
-                          <td>{subcollection?.name || 'N/A'}</td>
-                          <td>₹{obligation.amount || 0}</td>
-                          <td>
-                            <span className={`status-badge ${obligation.paid_status === 'paid' ? 'active' : obligation.paid_status === 'pending' ? 'pending' : 'overdue'}`}>
-                              {obligation.paid_status?.charAt(0).toUpperCase() + obligation.paid_status?.slice(1)}
-                            </span>
-                          </td>
-                          <td>{obligation.created_at ? new Date(obligation.created_at).toLocaleDateString() : 'N/A'}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            )}
+
+            {activeTab === 'family' && (
+              <div className="family-list-view animate-in">
+                <div className="family-grid">
+                  {familyMembers.map(fm => (
+                    <div
+                      key={fm.member_id}
+                      className={`family-member-card ${fm.member_id === member.member_id ? 'current' : ''}`}
+                      onClick={() => navigate(`/members/${fm.member_id}`)}
+                    >
+                      <div className="mini-avatar">
+                        {getInitials(fm.name)}
+                      </div>
+                      <div className="family-info">
+                        <h4>{fm.name}</h4>
+                        <span>{fm.relation || (fm.member_id === member.member_id ? 'Self' : 'Member')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ) : (
-              <p>No obligations found for this member</p>
             )}
           </div>
         </div>
+
+        {/* Bottom Section: Payment History / Obligations */}
+        <div className="detail-card obligations-card">
+          <div className="card-header-actions">
+            <h3 className="card-title">Payment History & Obligations</h3>
+            <div className="filter-controls">
+              <input
+                type="text"
+                placeholder="Search..."
+                className="search-input"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <select className="search-input" style={{ width: 'auto' }}>
+                <option value="all">All</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="table-wrapper">
+            {filteredObligations.length > 0 ? (
+              <table className="obligations-table">
+                <thead>
+                  <tr>
+                    <th>Ref ID</th>
+                    <th>Obligation / Description</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredObligations.map(obs => {
+                    const sub = subcollections.find(sc => sc.id === (typeof obs.subcollection === 'object' ? obs.subcollection.id : obs.subcollection));
+                    return (
+                      <tr key={obs.id}>
+                        <td>#{obs.id}</td>
+                        <td>
+                          <div style={{ fontWeight: 500 }}>{sub ? sub.name : 'Unknown Obligation'}</div>
+                        </td>
+                        <td style={{ fontWeight: 600 }}>₹{obs.amount}</td>
+                        <td>
+                          <span className={`status-pill ${obs.paid_status}`}>
+                            {obs.paid_status}
+                          </span>
+                        </td>
+                        <td>{new Date(obs.created_at || Date.now()).toLocaleDateString()}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--text-muted)' }}>
+                <p>No obligations found.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
-      
-      {/* Edit Member Modal */}
-      <MemberModal
-        isOpen={isEditModalOpen}
-        onClose={handleEditModalClose}
-        onSubmit={handleEditSuccess}
-        initialData={member}
-        loadDataForTab={loadDataForTab}
-      />
-      
+
       <DeleteConfirmModal
         isOpen={isDeleteModalOpen}
         onClose={handleDeleteModalClose}

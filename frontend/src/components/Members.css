@@ -1,0 +1,278 @@
+/* Members.css - Revised */
+
+/* Page Container */
+.members-page-container {
+    background: var(--surface-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* --- Top Section 1 --- */
+.members-top-section-1 {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+}
+
+.page-title {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.page-title h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0;
+    /* background: var(--accent-gradient); */
+    /* -webkit-background-clip: text; */
+    /* background-clip: text; */
+    /* -webkit-text-fill-color: transparent; */
+}
+
+.top-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.icon-only-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface-light);
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.icon-only-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* --- Top Section 2 --- */
+.members-top-section-2 {
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.search-filter-wrapper {
+    display: flex;
+    gap: 16px;
+}
+
+.search-bar {
+    flex: 1;
+}
+
+.search-bar input {
+    background: var(--surface);
+    border-radius: 50px;
+    padding-left: 24px;
+    border: 1px solid var(--border);
+}
+
+.search-bar input:focus {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.filter-container {
+    position: relative;
+}
+
+.filter-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-radius: 50px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-color);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Filter Dropdown Menu (YouTube Style) */
+.filter-menu-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    width: 320px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    /* gap: 1px; */
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filter-section h4 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+}
+
+.filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.filter-options.scrollable {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.filter-options button {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.filter-options button:hover {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.filter-options button.active {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, #4f46e5) 100%);
+    color: white;
+    border-color: transparent;
+}
+
+/* Active Filters List (Chips) */
+.active-filters-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 4px;
+}
+
+.filter-chip {
+    padding: 4px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gradient-chip {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.filter-chip span {
+    cursor: pointer;
+    font-size: 1.1rem;
+    opacity: 0.6;
+}
+
+.filter-chip span:hover {
+    opacity: 1;
+}
+
+.clear-all-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+/* --- Table --- */
+.members-table-container {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--surface);
+}
+
+.interactive-table tr.clickable-row {
+    cursor: pointer;
+}
+
+.interactive-table tr.clickable-row:hover td {
+    background: rgba(99, 102, 241, 0.05);
+}
+
+/* Column Widths Update (Removed Actions) */
+.members-table-container th:nth-child(1) {
+    width: 80px;
+}
+
+/* ID */
+.members-table-container th:nth-child(2) {
+    width: 25%;
+}
+
+/* Name */
+.members-table-container th:nth-child(3) {
+    width: 20%;
+}
+
+/* Area */
+.members-table-container th:nth-child(4) {
+    width: 120px;
+}
+
+/* Status */
+.members-table-container th:nth-child(5) {
+    width: 120px;
+}
+
+/* Role */
+/* Contact Info takes remaining */

@@ -10,7 +10,7 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
     due_date: '',
     collection: selectedCollection?.id || ''
   });
-  
+
   const [members, setMembers] = useState([]);
   const [areas, setAreas] = useState([]);
   const [filteredMembers, setFilteredMembers] = useState([]);
@@ -18,7 +18,7 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  
+
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedArea, setSelectedArea] = useState('');
@@ -30,7 +30,7 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
       // Load members and areas when modal opens
       loadMembers();
       loadAreas();
-      
+
       if (initialData) {
         setFormData({
           name: initialData.name || '',
@@ -39,7 +39,7 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
           due_date: initialData.due_date || '',
           collection: initialData.collection?.id || selectedCollection?.id || ''
         });
-        
+
         // If editing, load existing member obligations
         if (initialData.obligations) {
           setSelectedMembers(initialData.obligations.map(ob => ob.member?.member_id || ob.member));
@@ -54,7 +54,7 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
         });
         setSelectedMembers([]);
       }
-      
+
       // Reset status messages when modal opens
       setError(null);
       setSuccess(null);
@@ -85,38 +85,41 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
 
   const applyFilters = () => {
     let filtered = members;
-    
+
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(member => 
-        member.name && member.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(member =>
+        (member.name && member.name.toLowerCase().includes(term)) ||
+        (member.surname && member.surname.toLowerCase().includes(term)) ||
+        (member.member_id && member.member_id.toString().includes(term))
       );
     }
-    
+
     // Apply area filter
     if (selectedArea) {
-      filtered = filtered.filter(member => 
+      filtered = filtered.filter(member =>
         member.house && member.house.area && member.house.area.id === selectedArea
       );
     }
-    
+
     // Apply birth year filter
     if (birthYear) {
-      filtered = filtered.filter(member => 
+      filtered = filtered.filter(member =>
         member.date_of_birth && new Date(member.date_of_birth).getFullYear() == birthYear
       );
     }
-    
+
     // Apply guardian filter
     if (guardianFilter !== '') {
-      filtered = filtered.filter(member => 
+      filtered = filtered.filter(member =>
         String(member.isGuardian) === guardianFilter
       );
     }
-    
+
     // Only show live members
     filtered = filtered.filter(member => member.status === 'live');
-    
+
     setFilteredMembers(filtered);
   };
 
@@ -153,21 +156,21 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       // Prepare data for submission
       const submitData = { ...formData };
-      
+
       // Ensure collection is included
       if (!submitData.collection && selectedCollection?.id) {
         submitData.collection = selectedCollection.id;
       }
-      
+
       // Call the onSubmit function with both subcollection data and selected members
       await onSubmit(submitData, selectedMembers, initialData);
-      
+
       setSuccess('Subcollection saved successfully!');
-      
+
       // Close modal after a short delay
       setTimeout(() => {
         onClose();
@@ -184,13 +187,18 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content modal-content-wide">
+      <div className="modal-content modal-content-wide animate-in">
         <div className="modal-header">
-          <h2><FaClipboard /> {initialData ? 'Edit Subcollection' : 'Add New Subcollection'}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <h2>
+            <div className="header-icon-wrapper">
+              <FaClipboard />
+            </div>
+            {initialData ? 'Edit Subcollection' : 'Add New Subcollection'}
+          </h2>
+          <button className="close-btn" onClick={onClose}><FaTimes /></button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
+        <form onSubmit={handleSubmit} className="modal-body">
+          <div className="input-wrapper">
             <label htmlFor="name">Subcollection Name *</label>
             <input
               type="text"
@@ -203,9 +211,10 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
               placeholder="Enter subcollection name"
             />
           </div>
-          
+
+
           <div className="form-row">
-            <div className="form-group">
+            <div className="input-wrapper">
               <label htmlFor="year">Year *</label>
               <input
                 type="number"
@@ -219,8 +228,8 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
                 max="2100"
               />
             </div>
-            
-            <div className="form-group">
+
+            <div className="input-wrapper">
               <label htmlFor="amount">Amount (₹) *</label>
               <input
                 type="number"
@@ -235,8 +244,8 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
               />
             </div>
           </div>
-          
-          <div className="form-group">
+
+          <div className="input-wrapper">
             <label htmlFor="due_date">Due Date</label>
             <input
               type="date"
@@ -247,29 +256,30 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
               disabled={loading}
             />
           </div>
-          
+
+
           {/* Member Selection Section */}
           <div className="section-header">
             <h3>Select Members for this Subcollection</h3>
           </div>
-          
+
           {/* Filters */}
-          <div className="filter-section">
+          <div className="filter-section animate-in" style={{ animationDelay: '0.1s', background: 'var(--header-bg)', padding: '20px', borderRadius: '16px', marginBottom: '24px' }}>
             <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="search"><FaSearch /> Search Members</label>
+              <div className="input-wrapper">
+                <label htmlFor="search"><FaSearch /> Search</label>
                 <input
                   type="text"
                   id="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by name..."
+                  placeholder="Search by ID, Name or Surname..."
                   disabled={loading}
                 />
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="area"><FaFilter /> Filter by Area</label>
+
+              <div className="input-wrapper">
+                <label htmlFor="area"><FaFilter /> Area</label>
                 <select
                   id="area"
                   value={selectedArea}
@@ -282,102 +292,116 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
                   ))}
                 </select>
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="birthYear"><FaFilter /> Filter by Birth Year</label>
+
+              <div className="input-wrapper">
+                <label htmlFor="birthYear"><FaFilter /> Birth Year</label>
                 <input
                   type="number"
                   id="birthYear"
                   value={birthYear}
                   onChange={(e) => setBirthYear(e.target.value)}
-                  placeholder="Enter birth year"
+                  placeholder="YYYY"
                   disabled={loading}
                   min="1900"
                   max={new Date().getFullYear()}
                 />
               </div>
-              
-              <div className="form-group">
-                <label htmlFor="guardian-filter">Filter by Guardian</label>
+
+              <div className="input-wrapper">
+                <label htmlFor="guardian-filter">Guardian</label>
                 <select
                   id="guardian-filter"
                   value={guardianFilter}
                   onChange={(e) => setGuardianFilter(e.target.value)}
-                  className="filter-select"
                   disabled={loading}
                 >
-                  <option value="">All Members</option>
-                  <option value="true">Guardians Only</option>
-                  <option value="false">Non-Guardians Only</option>
+                  <option value="">All</option>
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
                 </select>
               </div>
             </div>
-            
+
             {/* Select All Filtered Button */}
-            <div className="form-group">
-              <button 
-                type="button" 
-                className="select-all-btn"
+            <div style={{ marginTop: '16px' }}>
+              <button
+                type="button"
+                className="btn-secondary"
                 onClick={handleSelectAllFiltered}
                 disabled={loading || filteredMembers.length === 0}
+                style={{ width: '100%', justifyContent: 'center' }}
               >
                 Select All Filtered Members ({filteredMembers.length})
               </button>
             </div>
           </div>
-          
+
+
           {/* Member List */}
-          <div className="member-selection-container">
-            <div className="member-list-header">
-              <div>Selected: {selectedMembers.length} members</div>
+          <div className="member-selection-container animate-in" style={{ animationDelay: '0.2s', background: 'var(--header-bg)', borderRadius: '16px', overflow: 'hidden' }}>
+            <div className="member-list-header" style={{ padding: '16px', borderBottom: '1px solid var(--border)', background: 'var(--surface-glass)' }}>
+              <div style={{ fontWeight: 600 }}>Selected: {selectedMembers.length} members</div>
             </div>
-            
-            <div className="member-list">
+
+            <div className="member-list" style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {filteredMembers.length > 0 ? (
                 filteredMembers.map(member => (
-                  <div 
-                    key={member.member_id} 
+                  <div
+                    key={member.member_id}
                     className={`member-item ${selectedMembers.includes(member.member_id) ? 'selected' : ''}`}
                     onClick={() => handleMemberSelect(member.member_id)}
+                    style={{
+                      padding: '12px 16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      borderBottom: '1px solid var(--border)',
+                      cursor: 'pointer',
+                      background: selectedMembers.includes(member.member_id) ? 'var(--primary-glass)' : 'transparent',
+                      transition: 'background 0.2s'
+                    }}
                   >
                     <div className="member-info">
-                      <div className="member-name">{member.name || 'Unknown Member'}</div>
-                      <div className="member-details">
-                        ID: #{member.member_id} | 
-                        House: {member.house?.house_name || 'N/A'} | 
-                        Area: {member.house?.area?.name || 'N/A'} | 
-                        DOB: {member.date_of_birth ? new Date(member.date_of_birth).getFullYear() : 'N/A'}
+                      <div className="member-name" style={{ fontWeight: 600 }}>
+                        {`${member.member_id} - ${member.name} ${member.surname || ''}`}
+                      </div>
+                      <div className="member-details" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        House: {member.house?.house_name || 'N/A'} | Area: {member.house?.area?.name || 'N/A'}
                       </div>
                     </div>
                     <div className="selection-indicator">
-                      {selectedMembers.includes(member.member_id) ? '✓ Selected' : '○ Click to Select'}
+                      {selectedMembers.includes(member.member_id) ?
+                        <span className="badge-primary">Selected</span> :
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Select</span>
+                      }
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="no-members">No members found matching the current filters</div>
+                <div className="no-members" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>No members found matching the current filters</div>
               )}
             </div>
           </div>
-          
+
+
           {(error || success) && (
-            <div className={`status-message ${error ? 'error' : 'success'}`}>
+            <div className={`status-banner ${error ? 'error' : 'success'}`} style={{ marginBottom: '24px' }}>
               {error || success}
             </div>
           )}
-          
+
           <div className="form-actions">
-            <button 
-              type="button" 
-              className="cancel-btn" 
+            <button
+              type="button"
+              className="btn-secondary"
               onClick={onClose}
               disabled={loading}
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
-              className="save-btn"
+            <button
+              type="submit"
+              className="btn-primary"
               disabled={loading}
             >
               {loading ? (
@@ -390,6 +414,7 @@ const SubcollectionModal = ({ isOpen, onClose, onSubmit, initialData, selectedCo
               )}
             </button>
           </div>
+
         </form>
       </div>
     </div>

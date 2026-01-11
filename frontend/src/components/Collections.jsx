@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { collectionAPI } from '../api'
 import { FaFolder, FaPlus, FaEdit, FaTrash, FaRedo, FaTimes } from 'react-icons/fa'
+import DeleteConfirmModal from './DeleteConfirmModal'
 
-const Collections = ({ 
-  collections, 
-  setEditing, 
-  deleteItem, 
+const Collections = ({
+  collections,
+  setEditing,
+  deleteItem,
   setSelectedCollection,
   loadDataForTab
 }) => {
@@ -15,7 +16,9 @@ const Collections = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [collectionToDelete, setCollectionToDelete] = useState(null);
+
   const navigate = useNavigate();
 
   // Load collections data on initial mount
@@ -38,13 +41,20 @@ const Collections = ({
     loadDataForTab('collections', true) // Force reload
   }
 
-  const handleDeleteCollection = async (collection) => {
-    if (window.confirm(`Are you sure you want to delete the collection "${collection.name}"? This will also delete all associated subcollections and obligations.`)) {
+  const handleDeleteCollection = (collection) => {
+    setCollectionToDelete(collection);
+    setIsDeleteModalOpen(true);
+  }
+
+  const confirmDelete = async () => {
+    if (collectionToDelete) {
       try {
-        await deleteItem('collections', collection.id)
+        await deleteItem('collections', collectionToDelete.id)
+        setIsDeleteModalOpen(false);
+        setCollectionToDelete(null);
       } catch (error) {
         console.error('Failed to delete collection:', error)
-        alert('Failed to delete collection. Please try again.')
+        throw error; // Let the modal handle the error display
       }
     }
   }
@@ -65,13 +75,13 @@ const Collections = ({
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       // Validate required fields
       if (!formData.name.trim()) {
         throw new Error('Collection name is required');
       }
-      
+
       if (editingCollection) {
         // Update existing collection
         await collectionAPI.update(editingCollection.id, formData);
@@ -81,12 +91,12 @@ const Collections = ({
         await collectionAPI.create(formData);
         setSuccess('Collection created successfully!');
       }
-      
+
       // Reset form
       setFormData({ name: '', description: '' });
       setEditingCollection(null);
       setShowAddForm(false);
-      
+
       // Reload collections
       loadDataForTab('collections', true);
     } catch (err) {
@@ -123,22 +133,22 @@ const Collections = ({
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       // Validate required fields
       if (!formData.name.trim()) {
         throw new Error('Collection name is required');
       }
-      
+
       // Update the collection
       await collectionAPI.update(editingCollection.id, formData);
-      
+
       // Reset form
       setFormData({ name: '', description: '' });
       setEditingCollection(null);
       setShowAddForm(false);
       setSuccess('Collection updated successfully!');
-      
+
       // Reload collections
       loadDataForTab('collections', true);
     } catch (err) {
@@ -152,81 +162,91 @@ const Collections = ({
 
 
   return (
-    <div className="data-section">
+    <div className="data-section animate-in">
       <div className="section-header">
-        <h2><FaFolder /> Collections</h2>
+        <h2>
+          <div className="header-icon-wrapper">
+            <FaFolder />
+          </div>
+          Collections
+        </h2>
         <div className="header-actions">
-          <button onClick={handleReloadData} className="reload-btn">
-            <FaRedo /> Reload
+          <button onClick={handleReloadData} className="reload-btn" title="Reload Data">
+            <FaRedo />
           </button>
-          <button onClick={() => setShowAddForm(true)} className="add-btn">
-            <FaPlus /> Add New Collection
+          <button onClick={() => setShowAddForm(true)} className="btn-primary">
+            + Create New Collection
           </button>
         </div>
-        
+
         {/* Collection Form Modal */}
         {showAddForm && (
           <div className="modal-overlay">
-            <div className="modal-content">
+            <div className="modal-content animate-in">
               <div className="modal-header">
-                <h2><FaFolder /> {editingCollection ? 'Edit Collection' : 'Add New Collection'}</h2>
+                <h2>{editingCollection ? 'Modify Collection' : 'Register Collection'}</h2>
                 <button className="close-btn" onClick={handleFormClose}>×</button>
               </div>
-              <form onSubmit={handleFormSubmit}>
+              <form onSubmit={handleFormSubmit} className="modal-body">
                 <div className="form-group">
-                  <label htmlFor="collectionName">Collection Name *</label>
-                  <input
-                    type="text"
-                    id="collectionName"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleFormChange}
-                    required
-                    disabled={loading}
-                    placeholder="Enter collection name"
-                  />
+                  <label htmlFor="collectionName">Internal Unique Name</label>
+                  <div className="input-wrapper">
+                    <input
+                      type="text"
+                      id="collectionName"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleFormChange}
+                      required
+                      disabled={loading}
+                      placeholder="e.g. Annual Fund 2024"
+                    />
+                  </div>
                 </div>
-                
+
                 <div className="form-group">
-                  <label htmlFor="collectionDescription">Description</label>
-                  <textarea
-                    id="collectionDescription"
-                    name="description"
-                    value={formData.description}
-                    onChange={handleFormChange}
-                    disabled={loading}
-                    placeholder="Enter collection description (optional)"
-                    rows="3"
-                  />
+                  <label htmlFor="collectionDescription">Public Description</label>
+                  <div className="input-wrapper">
+                    <textarea
+                      id="collectionDescription"
+                      name="description"
+                      value={formData.description}
+                      onChange={handleFormChange}
+                      disabled={loading}
+                      placeholder="Details about intended usage..."
+                      rows="3"
+                    />
+                  </div>
                 </div>
-                
+
                 {(error || success) && (
-                  <div className={`status-message ${error ? 'error' : 'success'}`}>
-                    {error || success}
+                  <div className={`status-banner ${error ? 'error' : 'success'}`}>
+                    <div className="status-icon">{error ? '⚠️' : '✅'}</div>
+                    <p>{error || success}</p>
                   </div>
                 )}
-                
-                <div className="form-actions">
-                  <button 
-                    type="button" 
-                    className="cancel-btn" 
+
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn-secondary"
                     onClick={handleFormClose}
                     disabled={loading}
                   >
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
-                    className="save-btn"
+                  <button
+                    type="submit"
+                    className="btn-primary"
                     disabled={loading}
                   >
                     {loading ? (
-                      <>
-                        <span className="spinner"></span>
-                        {editingCollection ? 'Updating...' : 'Creating...'}
-                      </>
+                      <div className="btn-content">
+                        <span className="spinner-small"></span>
+                        <span>Saving...</span>
+                      </div>
                     ) : (
-                      editingCollection ? 'Update Collection' : 'Create Collection'
+                      editingCollection ? 'Update' : 'Confirm'
                     )}
                   </button>
                 </div>
@@ -235,12 +255,13 @@ const Collections = ({
           </div>
         )}
       </div>
-      
+
       <div className="collection-cards-container">
         {collections.map(collection => (
-          <div 
-            key={collection.id} 
+          <div
+            key={collection.id}
             className="collection-card"
+            onClick={() => handleCollectionClick(collection)}
           >
             <div className="collection-card-icon">
               <FaFolder />
@@ -249,40 +270,30 @@ const Collections = ({
               {collection.name}
             </div>
             <div className="collection-card-actions">
-              <button 
-                className="open-btn"
-                onClick={(e) => handleOpenCollection(collection, e)}
-              >
-                Open
-              </button>
-              <button 
-                className="edit-btn"
+              <button
+                className="btn-secondary"
                 onClick={(e) => {
                   e.stopPropagation()
                   handleEditClick(collection)
                 }}
               >
-                <FaEdit /> Edit
+                <FaEdit />
               </button>
-              <button 
+              <button
                 className="delete-btn"
                 onClick={(e) => {
                   e.stopPropagation()
                   handleDeleteCollection(collection)
                 }}
               >
-                <FaTrash /> Delete
+                <FaTrash />
               </button>
             </div>
-            <div 
-              className="collection-card-overlay"
-              onClick={() => handleCollectionClick(collection)}
-            ></div>
           </div>
         ))}
-        
+
         {/* Add New Collection Card */}
-        <div 
+        <div
           className="add-btn-card"
           onClick={() => setShowAddForm(true)}
         >
@@ -290,16 +301,24 @@ const Collections = ({
             <FaPlus />
           </div>
           <div className="add-btn-card-text">
-            Add New Collection
+            Register Collection
           </div>
         </div>
       </div>
-      
+
       {collections.length === 0 && (
         <div className="empty-state">
-          <p>No collections found. Add a new collection to get started.</p>
+          <p>The collection vault is empty. Start by registering a new one.</p>
         </div>
       )}
+
+      <DeleteConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        item={collectionToDelete}
+        itemType="collections"
+      />
     </div>
   )
 }

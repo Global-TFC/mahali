@@ -18,6 +18,7 @@ class Area(models.Model):
 
 class House(models.Model):
     home_id = models.CharField(max_length=50, unique=True, db_index=True)  # Custom sequential ID, indexed
+    firebase_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)  # Link to Firestore document
     house_name = models.CharField(max_length=100)
     family_name = models.CharField(max_length=100)
     location_name = models.CharField(max_length=100)
@@ -50,11 +51,19 @@ class Member(models.Model):
         ('terminated', 'Terminated'),
     ]
 
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+    ]
+
     member_id = models.CharField(max_length=50, unique=True, db_index=True)  # Custom sequential ID, indexed
+    firebase_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)  # Link to Firestore
     name = models.CharField(max_length=100)  # Added name field
     surname = models.CharField(max_length=100, blank=True)  # Optional surname field
     house = models.ForeignKey(House, null=True, blank=True, on_delete=models.SET_NULL, related_name='members', db_index=True)  # Reverse rel + index
-    adhar = models.CharField(max_length=12, null=True, blank=True, validators=[RegexValidator(r'^\d{12}$')])
+    adhar = models.CharField(max_length=12, null=True, blank=True, validators=[RegexValidator(r'^\d{4}$', message="Enter the last 4 digits of Aadhaar")])
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='live', db_index=True)  # Indexed for filters
     date_of_birth = models.DateField()
     date_of_death = models.DateField(null=True, blank=True)
@@ -64,6 +73,14 @@ class Member(models.Model):
     father_name = models.CharField(max_length=100, blank=True)
     father_surname = models.CharField(max_length=100, blank=True)
     father = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='children_as_father')
+    
+    # Marriage Information
+    married_to_name = models.CharField(max_length=100, blank=True)
+    married_to_surname = models.CharField(max_length=100, blank=True)
+    married_to = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='spouse')
+    
+    general_body_member = models.BooleanField(default=False)
+    
     photo = models.ImageField(upload_to='members/photos/', null=True, blank=True)
     phone = models.CharField(max_length=15, null=True, blank=True)
     whatsapp = models.CharField(max_length=15, null=True, blank=True)
@@ -80,6 +97,7 @@ class Member(models.Model):
             raise ValidationError("Date of death cannot be before date of birth.")
 
     def save(self, *args, **kwargs):
+        is_new = self._state.adding
         if not self.member_id:
             # Auto-generate sequential ID starting from '1001'
             with transaction.atomic():
@@ -89,7 +107,26 @@ class Member(models.Model):
                 else:
                     next_id = '1001'
                 self.member_id = next_id
+        
+        # Save first to ensure we have an ID (especially for new members)
         super().save(*args, **kwargs)
+
+        # Handle bidirectional marriage
+        if self.married_to:
+            spouse = self.married_to
+            if spouse.married_to != self:
+                spouse.married_to = self
+                # Update spouse's name/surname if they are blank (optional convenience)
+                if not spouse.married_to_name:
+                    spouse.married_to_name = self.name
+                if not spouse.married_to_surname:
+                    spouse.married_to_surname = self.surname
+                spouse.save(update_fields=['married_to', 'married_to_name', 'married_to_surname'])
+        else:
+            # If married_to was cleared, we should clear it on the former spouse too
+            # This is complex because we don't know the former spouse easily here
+            # For now, let's just handle set/update.
+            pass
 
 
 # Payments Models
@@ -118,7 +155,7 @@ class SubCollection(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('collection', 'year')  # Prevent duplicates per year
+        unique_together = ('collection', 'year', 'name')  # Prevent exact duplicates per collection/year/name
 
     def __str__(self):
         return f"{self.name} ({self.year})"
@@ -208,3 +245,28 @@ class AppSettings(models.Model):
     
     def __str__(self):
         return f"App Settings (Theme: {self.theme})"
+
+
+class RecentAction(models.Model):
+    ACTION_TYPES = [
+        ('CREATE', 'Created'),
+        ('UPDATE', 'Updated'),
+        ('DELETE', 'Deleted'),
+    ]
+
+    model_name = models.CharField(max_length=50)  # 'House', 'Member', 'Obligation'
+    object_id = models.CharField(max_length=50)
+    action_type = models.CharField(max_length=10, choices=ACTION_TYPES)
+    description = models.TextField()  # Human readable
+    fields_changed = models.JSONField(default=dict)  # {"field": {"old": "val", "new": "val"}}
+    
+    # For sync status
+    is_sync_pending = models.BooleanField(default=True)
+    
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.action_type} {self.model_name} ({self.object_id})"

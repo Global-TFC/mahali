@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { memberAPI, houseAPI, areaAPI, collectionAPI, subcollectionAPI, obligationAPI, eventAPI, api } from '../api'
 import Sidebar from './Sidebar'
 import Dashboard from './Dashboard'
+import LoadingScreen from './LoadingScreen'
 import Areas from './Areas'
 import Houses from './Houses'
 import HouseDetailsPage from './HouseDetailsPage'
@@ -12,12 +13,18 @@ import MemberDetailsPage from './MemberDetailsPage'
 import Collections from './Collections'
 import Subcollections from './Subcollections'
 import Obligations from './Obligations'
-import DataManagement from './DataManagement'
+
 import EditForm from './EditForm'
-import MemberModal from './MemberModal'
+
 import DeleteConfirmModal from './DeleteConfirmModal'
 import FirebaseDataImproved from './FirebaseDataImproved'
+import AreaForm from './AreaForm'
+import HouseForm from './HouseForm'
+import MemberForm from './MemberForm'
+import BulkObligationPage from './BulkObligationPage'
+import MyActions from './MyActions'
 import Settings from './Settings'
+
 import './App.css'
 
 function AppWithRouter() {
@@ -40,14 +47,12 @@ function AppWithRouter() {
   const [importProgress, setImportProgress] = useState(null)
   const [isExporting, setIsExporting] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
-  const [currentMember, setCurrentMember] = useState(null)
   const [memberToDelete, setMemberToDelete] = useState(null)
-  
+
   // Track which tabs have been loaded
   const [loadedTabs, setLoadedTabs] = useState(new Set(['dashboard']))
-  
+
   // Tab-specific loading states
   const [tabLoadingStates, setTabLoadingStates] = useState({
     dashboard: false,
@@ -57,16 +62,16 @@ function AppWithRouter() {
     collections: false,
     subcollections: false,
     obligations: false,
-    data: false
+
   })
 
   const loadDataForTab = async (tab, force = false) => {
     // If tab is already loaded and not forced, don't load again
     if (!force && loadedTabs.has(tab)) return
-    
+
     // Set loading state for this specific tab
     setTabLoadingStates(prev => ({ ...prev, [tab]: true }))
-    
+
     try {
       switch (tab) {
         case 'areas':
@@ -101,7 +106,7 @@ function AppWithRouter() {
           // Other tabs don't need specific data loading
           break
       }
-      
+
       // Mark tab as loaded (only if not forced)
       if (!force) {
         setLoadedTabs(prev => new Set(prev).add(tab))
@@ -151,10 +156,10 @@ function AppWithRouter() {
   const handleTabChange = (tab) => {
     setActiveTab(tab)
     // Load data for the new tab if not already loaded
-    if (tab !== 'dashboard' && tab !== 'data') {
+    if (tab !== 'dashboard') {
       loadDataForTab(tab)
     } else {
-      // Mark dashboard and data tabs as loaded since they don't need data
+      // Mark dashboard as loaded since it does not need data
       setLoadedTabs(prev => new Set(prev).add(tab))
     }
   }
@@ -175,43 +180,43 @@ function AppWithRouter() {
   }
 
   const createItem = async (type, data) => {
-    const apis = { 
-      members: memberAPI, 
-      houses: houseAPI, 
-      areas: areaAPI, 
-      collections: collectionAPI, 
-      subcollections: subcollectionAPI, 
-      obligations: obligationAPI, 
-      events: eventAPI 
+    const apis = {
+      members: memberAPI,
+      houses: houseAPI,
+      areas: areaAPI,
+      collections: collectionAPI,
+      subcollections: subcollectionAPI,
+      obligations: obligationAPI,
+      events: eventAPI
     }
     await apis[type].create(data)
   }
 
   const updateItem = async (type, id, data) => {
-    const apis = { 
-      members: memberAPI, 
-      houses: houseAPI, 
-      areas: areaAPI, 
-      collections: collectionAPI, 
-      subcollections: subcollectionAPI, 
-      obligations: obligationAPI, 
-      events: eventAPI 
+    const apis = {
+      members: memberAPI,
+      houses: houseAPI,
+      areas: areaAPI,
+      collections: collectionAPI,
+      subcollections: subcollectionAPI,
+      obligations: obligationAPI,
+      events: eventAPI
     }
     await apis[type].update(id, data)
   }
 
   const deleteItem = async (type, id) => {
-    const apis = { 
-      members: memberAPI, 
-      houses: houseAPI, 
-      areas: areaAPI, 
-      collections: collectionAPI, 
-      subcollections: subcollectionAPI, 
-      obligations: obligationAPI, 
-      events: eventAPI 
+    const apis = {
+      members: memberAPI,
+      houses: houseAPI,
+      areas: areaAPI,
+      collections: collectionAPI,
+      subcollections: subcollectionAPI,
+      obligations: obligationAPI,
+      events: eventAPI
     }
     await apis[type].delete(id)
-    
+
     // Reload data for the specific tab that corresponds to the deleted item type
     switch (type) {
       case 'areas':
@@ -243,18 +248,18 @@ function AppWithRouter() {
     setIsExporting(true);
     try {
       setExportProgress({ status: 'starting', message: 'Starting export...', progress: 0 });
-      
+
       // Real progress - Collecting data
       setExportProgress({ status: 'processing', message: 'Collecting database...', progress: 20 });
-      
+
       const response = await obligationAPI.exportData()
-      
+
       // Progress - Packaging files
       setExportProgress({ status: 'processing', message: 'Packaging files...', progress: 60 });
-      
+
       // Progress - Compressing archive
       setExportProgress({ status: 'processing', message: 'Compressing archive...', progress: 80 });
-      
+
       // Create download link and trigger download
       const url = window.URL.createObjectURL(new Blob([response.data]))
       const a = document.createElement('a')
@@ -264,7 +269,7 @@ function AppWithRouter() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      
+
       setExportProgress({ status: 'completed', message: 'Export completed!', progress: 100 })
       setTimeout(() => {
         setExportProgress(null)
@@ -290,18 +295,18 @@ function AppWithRouter() {
 
     try {
       setImportProgress({ status: 'starting', message: 'Starting import...', progress: 0 });
-      
+
       // Real progress - Validating file
       setImportProgress({ status: 'processing', message: 'Validating file...', progress: 10 });
-      
+
       // Real progress - Extracting data
       setImportProgress({ status: 'processing', message: 'Extracting data...', progress: 30 });
-      
+
       await obligationAPI.importData(formData);
-      
+
       // Progress - Importing records
       setImportProgress({ status: 'processing', message: 'Importing records...', progress: 75 });
-      
+
       setImportProgress({ status: 'completed', message: 'Import completed!', progress: 100 });
       setTimeout(() => {
         setImportProgress(null);
@@ -319,16 +324,6 @@ function AppWithRouter() {
     }
   }
 
-  const handleAddMember = () => {
-    setCurrentMember(null)
-    setIsModalOpen(true)
-  }
-
-  const handleEditMember = (member) => {
-    setCurrentMember(member)
-    setIsModalOpen(true)
-  }
-
   const handleDeleteMember = (member) => {
     setMemberToDelete(member)
     setIsDeleteModalOpen(true)
@@ -344,24 +339,12 @@ function AppWithRouter() {
     }
   }
 
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setCurrentMember(null)
-  }
-
   const handleDeleteModalClose = () => {
     setIsDeleteModalOpen(false)
     setMemberToDelete(null)
   }
 
-  if (loading) return (
-    <div className={`app theme-${theme}`}>
-      <div className="loading-container">
-        <div className="spinner"></div>
-        <p>Loading data...{retryCount > 0 && ` (Retrying ${retryCount}/3)`}</p>
-      </div>
-    </div>
-  )
+  if (loading) return <LoadingScreen retryCount={retryCount} />
 
   if (error) return (
     <div className={`app theme-${theme}`}>
@@ -375,7 +358,7 @@ function AppWithRouter() {
 
   // Show loading indicator for specific tabs
   const isTabLoading = tabLoadingStates[activeTab]
-  
+
   // Disable interactions during export/import
   const isBusy = isExporting || isImporting || loading || isTabLoading
 
@@ -383,7 +366,7 @@ function AppWithRouter() {
     <Router>
       <div className={`app theme-${theme}`}>
         <div className="app-layout">
-          <Sidebar 
+          <Sidebar
             activeTab={activeTab}
             setActiveTab={handleTabChange}
             theme={theme}
@@ -394,13 +377,20 @@ function AppWithRouter() {
             collectionsCount={collections.length}
             disabled={isBusy}
           />
-          
+
           <div className="main-content">
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/areas/add" element={<AreaForm />} />
+              <Route path="/areas/edit/:id" element={<AreaForm />} />
+              <Route path="/houses/add" element={<HouseForm />} />
+              <Route path="/houses/edit/:id" element={<HouseForm />} />
+              <Route path="/members/add" element={<MemberForm />} />
+              <Route path="/members/edit/:id" element={<MemberForm />} />
+              <Route path="/obligations/bulk-add" element={<BulkObligationPage />} />
               <Route path="/areas" element={
-                <Areas 
+                <Areas
                   areas={areas}
                   setEditing={setEditing}
                   deleteItem={deleteItem}
@@ -408,7 +398,7 @@ function AppWithRouter() {
                 />
               } />
               <Route path="/houses" element={
-                <Houses 
+                <Houses
                   houses={houses}
                   areas={areas}
                   setEditing={setEditing}
@@ -417,17 +407,18 @@ function AppWithRouter() {
                 />
               } />
               <Route path="/houses/:houseId" element={
-                <HouseDetailsPage 
+                <HouseDetailsPage
                   houses={houses}
                   members={members}
                   areas={areas}
                   subcollections={subcollections}
                   setEditing={setEditing}
                   loadDataForTab={loadDataForTab}
+                  deleteItem={deleteItem}
                 />
               } />
               <Route path="/members" element={
-                <Members 
+                <Members
                   members={members}
                   setEditing={setEditing}
                   deleteItem={deleteItem}
@@ -435,7 +426,7 @@ function AppWithRouter() {
                 />
               } />
               <Route path="/members/:memberId" element={
-                <MemberDetailsPage 
+                <MemberDetailsPage
                   members={members}
                   houses={houses}
                   areas={areas}
@@ -445,8 +436,9 @@ function AppWithRouter() {
                 />
               } />
               <Route path="/member-request" element={<FirebaseDataImproved />} /> {/* Member Request route */}
+              <Route path="/my-actions" element={<MyActions />} />
               <Route path="/collections" element={
-                <Collections 
+                <Collections
                   collections={collections}
                   setEditing={setEditing}
                   deleteItem={deleteItem}
@@ -458,7 +450,7 @@ function AppWithRouter() {
                 />
               } />
               <Route path="/subcollections" element={
-                <Subcollections 
+                <Subcollections
                   subcollections={subcollections}
                   selectedCollection={selectedCollection}
                   setEditing={setEditing}
@@ -471,7 +463,7 @@ function AppWithRouter() {
                 />
               } />
               <Route path="/obligations" element={
-                <Obligations 
+                <Obligations
                   memberObligations={memberObligations}
                   selectedSubcollection={selectedSubcollection}
                   members={members}
@@ -493,18 +485,17 @@ function AppWithRouter() {
                   setActiveTab={setActiveTab}
                 />
               } />
-              <Route path="/data" element={
-                <DataManagement 
+              <Route path="/settings" element={
+                <Settings
                   exportData={exportData}
                   importData={importData}
                   exportProgress={exportProgress}
                   importProgress={importProgress}
                   disabled={isBusy}
                 />
-              } />
-              <Route path="/settings" element={<Settings />} /> {/* Settings route */}
+              } /> {/* Settings route */}
             </Routes>
-            
+
             {editing && (
               <EditForm
                 editing={editing}
@@ -515,14 +506,9 @@ function AppWithRouter() {
                 disabled={isBusy}
               />
             )}
-            
-            <MemberModal
-              isOpen={isModalOpen}
-              onClose={handleModalClose}
-              initialData={currentMember}
-              loadDataForTab={loadDataForTab}
-            />
-            
+
+
+
             <DeleteConfirmModal
               isOpen={isDeleteModalOpen}
               onClose={handleDeleteModalClose}
@@ -532,7 +518,7 @@ function AppWithRouter() {
             />
           </div>
         </div>
-        
+
         {/* Overlay to prevent interactions during export/import */}
         {isBusy && (
           <div className="busy-overlay">

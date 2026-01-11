@@ -29,65 +29,84 @@ const Dashboard = () => {
   if (!stats) return <div>No data available</div>;
 
   return (
-    <div className="dashboard">
+    <div className="dashboard animate-in">
       <div className="data-section">
-        <h2>📊 Dashboard Overview</h2>
+        <div className="section-header">
+          <h2>
+            <div className="header-icon-wrapper">
+              📊
+            </div>
+            Overview
+          </h2>
+        </div>
         <div className="dashboard-stats">
           <div className="stat-card">
             <h3>{stats.members_count}</h3>
-            <p>Members</p>
+            <p>Total Members</p>
           </div>
           <div className="stat-card">
             <h3>{stats.houses_count}</h3>
-            <p>Houses</p>
+            <p>Total Houses</p>
           </div>
           <div className="stat-card">
             <h3>{stats.areas_count}</h3>
-            <p>Areas</p>
+            <p>Managed Areas</p>
           </div>
           <div className="stat-card">
-            <h3>{stats.pending_todos_count}/{stats.todos_count}</h3>
-            <p>Pending Todos</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="data-section">
-        <h2>👥 Members by Status</h2>
-        <div className="dashboard-stats">
-          <div className="stat-card">
-            <h3>{stats.members_by_status.live}</h3>
-            <p>Live</p>
-          </div>
-          <div className="stat-card">
-            <h3>{stats.members_by_status.dead}</h3>
-            <p>Deceased</p>
-          </div>
-          <div className="stat-card">
-            <h3>{stats.members_by_status.terminated}</h3>
-            <p>Terminated</p>
+            <h3 className="text-primary">{stats.pending_todos_count}/{stats.todos_count}</h3>
+            <p>Tasks Pending</p>
           </div>
         </div>
       </div>
 
-      <div className="data-section">
-        <h2>💰 Obligations by Status</h2>
-        <div className="dashboard-stats">
-          <div className="stat-card">
-            <h3>{stats.obligations_by_status.pending}</h3>
-            <p>Pending</p>
+      <div className="dashboard-grid">
+        <div className="data-section">
+          <div className="section-header">
+            <h2>
+              <div className="header-icon-wrapper" style={{ background: 'var(--header-bg)' }}>
+                👥
+              </div>
+              Member Metrics
+            </h2>
           </div>
-          <div className="stat-card">
-            <h3>{stats.obligations_by_status.paid}</h3>
-            <p>Paid</p>
+          <div className="dashboard-stats compact">
+            <div className="stat-card minimal">
+              <span className="badge-primary">{stats.members_by_status.live}</span>
+              <p>Live</p>
+            </div>
+            <div className="stat-card minimal">
+              <span className="badge-outline">{stats.members_by_status.dead}</span>
+              <p>Deceased</p>
+            </div>
+            <div className="stat-card minimal">
+              <span className="badge-outline" style={{ opacity: 0.6 }}>{stats.members_by_status.terminated}</span>
+              <p>Terminated</p>
+            </div>
           </div>
-          <div className="stat-card">
-            <h3>{stats.obligations_by_status.overdue}</h3>
-            <p>Overdue</p>
+        </div>
+
+        <div className="data-section">
+          <div className="section-header">
+            <h2>
+              <div className="header-icon-wrapper" style={{ background: 'var(--accent-gradient)' }}>
+                💰
+              </div>
+              Financial Pulse
+            </h2>
           </div>
-          <div className="stat-card">
-            <h3>{stats.obligations_by_status.partial}</h3>
-            <p>Partial</p>
+          <div className="dashboard-stats compact">
+            <div className="stat-card minimal">
+              <span className="badge-primary">{stats.obligations_by_status.paid}</span>
+              <p>Paid</p>
+            </div>
+            <div className="stat-card minimal">
+              <span className="badge-outline" style={{ color: '#ef4444', borderColor: '#ef4444' }}>{stats.obligations_by_status.pending}</span>
+              <p>Pending</p>
+            </div>
+            <div className="stat-card minimal">
+              <span className="badge-outline" style={{ color: '#f59e0b', borderColor: '#f59e0b' }}>{stats.obligations_by_status.overdue}</span>
+              <p>Overdue</p>
+            </div>
           </div>
         </div>
       </div>

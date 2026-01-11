@@ -60,79 +60,64 @@ const Todos = () => {
   if (error) return <div className="error">Error: {error}</div>;
 
   return (
-    <div className="todos-section">
-      <h2>📋 Todo List</h2>
-      
-      <form onSubmit={handleCreateTodo} className="todo-form">
-        <div className="form-group">
+    <div className="todo-container animate-in">
+      <div className="section-header">
+        <h3>
+          <div className="header-icon-wrapper" style={{ background: 'var(--accent-gradient)', width: '32px', height: '32px', fontSize: '1rem' }}>
+            📋
+          </div>
+          Action Items
+        </h3>
+      </div>
+
+      <form onSubmit={handleCreateTodo} className="todo-form" style={{ marginBottom: '24px' }}>
+        <div className="input-wrapper">
           <input
             type="text"
-            placeholder="Todo title"
+            placeholder="What needs to be done?"
             value={newTodo.title}
             onChange={(e) => setNewTodo({ ...newTodo, title: e.target.value })}
             required
+            className="search-input"
           />
+          <button type="submit" className="btn-primary" style={{ padding: '8px 24px' }}>Add</button>
         </div>
-        <div className="form-group">
-          <textarea
-            placeholder="Description (optional)"
-            value={newTodo.description}
-            onChange={(e) => setNewTodo({ ...newTodo, description: e.target.value })}
-          />
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <select
-              value={newTodo.priority}
-              onChange={(e) => setNewTodo({ ...newTodo, priority: e.target.value })}
-            >
-              <option value="low">Low Priority</option>
-              <option value="medium">Medium Priority</option>
-              <option value="high">High Priority</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <input
-              type="date"
-              value={newTodo.due_date}
-              onChange={(e) => setNewTodo({ ...newTodo, due_date: e.target.value })}
-            />
-          </div>
-        </div>
-        <button type="submit" className="add-btn">Add Todo</button>
       </form>
 
       <div className="todos-list">
         {todos.length === 0 ? (
-          <p>No todos yet. Add one above!</p>
+          <div className="empty-state" style={{ padding: '20px' }}>
+            <p>Your agenda is clear. Enjoy the day!</p>
+          </div>
         ) : (
           todos.map((todo) => (
-            <div key={todo.id} className={`todo-item priority-${todo.priority} ${todo.completed ? 'completed' : ''}`}>
-              <div className="todo-content">
-                <h3>
-                  <input
-                    type="checkbox"
-                    checked={todo.completed}
-                    onChange={() => handleToggleComplete(todo.id, todo.completed)}
-                  />
-                  <span className={todo.completed ? 'completed-text' : ''}>{todo.title}</span>
-                </h3>
-                {todo.description && <p>{todo.description}</p>}
+            <div key={todo.id} className={`todo-item ${todo.completed ? 'completed' : ''}`}>
+              <input
+                type="checkbox"
+                className="todo-checkbox"
+                checked={todo.completed}
+                onChange={() => handleToggleComplete(todo.id, todo.completed)}
+              />
+              <div className={`todo-text ${todo.completed ? 'completed' : ''}`}>
+                <p className="font-semibold" style={{ margin: 0, fontSize: '0.95rem' }}>{todo.title}</p>
+                {todo.description && <p className="text-muted" style={{ fontSize: '0.8rem', marginTop: '2px' }}>{todo.description}</p>}
                 {todo.due_date && (
-                  <p className="due-date">
+                  <span className="badge-outline" style={{ fontSize: '0.7rem', marginTop: '6px', display: 'inline-block' }}>
                     Due: {new Date(todo.due_date).toLocaleDateString()}
-                  </p>
+                  </span>
                 )}
               </div>
               <div className="todo-actions">
-                <span className={`priority-badge priority-${todo.priority}`}>
+                <span className={`status-badge ${todo.priority === 'high' ? 'terminated' : todo.priority === 'medium' ? 'inactive' : 'active'}`} style={{ fontSize: '0.7rem' }}>
                   {todo.priority}
                 </span>
-                <button 
+                <button
                   className="delete-btn"
                   onClick={() => handleDeleteTodo(todo.id)}
+                  title="Remove"
+                  style={{ padding: '4px 8px' }}
                 >
-                  Delete
+                  <FaTrash />
                 </button>
               </div>
             </div>
