@@ -339,10 +339,10 @@ const MemberDetailsPage = ({ members: initialMembers, houses, areas, setEditing,
             {activeTab === 'family' && (
               <div className="family-list-view animate-in">
                 {/* Family Tree Visualization Button */}
-                <div style={{ marginBottom: '20px', padding: '16px', background: '#f0f2f5', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div className="tree-info">
+                <div style={{ marginBottom: '20px', padding: '20px', background: '#f0f2f5', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
                     <h4 style={{ margin: 0, color: '#333' }}>Genealogical Tree</h4>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: '#666' }}>View full family lineage including parents, spouse, and siblings.</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: '#666' }}>View parents, siblings, spouse, and children relationships.</p>
                   </div>
                   <button
                     onClick={() => navigate(`/members/${member.member_id}/tree`)}
@@ -353,7 +353,7 @@ const MemberDetailsPage = ({ members: initialMembers, houses, areas, setEditing,
                   </button>
                 </div>
 
-                {/* Household Members List (Optional: Keep or Remove? Keeping as 'Household Members') */}
+                {/* Household Members List */}
                 <h4 style={{ margin: '20px 0 10px', color: '#666' }}>Same House Members</h4>
                 <div className="family-grid">
                   {familyMembers.map(fm => (

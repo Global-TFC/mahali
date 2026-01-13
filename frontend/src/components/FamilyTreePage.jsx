@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { memberAPI } from '../api';
 import FamilyTree from './FamilyTree';
 import { FaArrowLeft } from 'react-icons/fa';
-import './FamilyTree.css'; // Reuse existing CSS
+import './FamilyTree.css'; // Reuse existing CSS or create specific if needed
 
 const FamilyTreePage = () => {
     const { memberId } = useParams();
@@ -16,22 +16,21 @@ const FamilyTreePage = () => {
         const loadData = async () => {
             try {
                 setLoading(true);
-                // Parallel fetch
-                const [memberRes, allMembersRes] = await Promise.all([
-                    memberAPI.get(memberId),
-                    memberAPI.getAll()
-                ]);
-
+                // Fetch current member
+                const memberRes = await memberAPI.get(memberId);
                 setMember(memberRes.data);
 
-                // Handle potential pagination
-                const membersData = Array.isArray(allMembersRes.data)
+                // Fetch all members for tree logic
+                // Optimization: In a real large app, we might want a specific endpoint for relations
+                // For now, consistent with MemberDetailsPage approach:
+                const allMembersRes = await memberAPI.getAll();
+                const safeMembers = Array.isArray(allMembersRes.data)
                     ? allMembersRes.data
                     : (allMembersRes.data.results || []);
-                setAllMembers(membersData);
+                setAllMembers(safeMembers);
 
             } catch (error) {
-                console.error("Error loading family tree data:", error);
+                console.error("Failed to load family tree data", error);
             } finally {
                 setLoading(false);
             }
@@ -42,40 +41,38 @@ const FamilyTreePage = () => {
         }
     }, [memberId]);
 
+    const handleBack = () => {
+        navigate(`/members/${memberId}`);
+    };
+
     if (loading) {
-        return <div className="loading-screen">Loading Family Tree...</div>;
+        return (
+            <div className="data-section" style={{ padding: '40px', textAlign: 'center' }}>
+                <div className="spinner"></div>
+                <p>Loading family tree...</p>
+            </div>
+        );
     }
 
     if (!member) {
-        return <div className="error-screen">Member not found</div>;
+        return (
+            <div className="data-section">
+                <p>Member not found.</p>
+                <button onClick={() => navigate('/members')}>Back to Members</button>
+            </div>
+        );
     }
 
     return (
-        <div className="family-tree-page-wrapper" style={{ padding: '20px', minHeight: '100vh', background: '#f5f7fa' }}>
-            <div className="header-actions" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '15px' }}>
-                <button
-                    onClick={() => navigate(`/members/${memberId}`)}
-                    className="back-btn"
-                    style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '8px 16px',
-                        border: 'none',
-                        background: '#fff',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                        fontSize: '0.95rem',
-                        fontWeight: 500
-                    }}
-                >
-                    <FaArrowLeft /> Back to Member
+        <div className="family-tree-page-wrapper animate-in" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+            <div className="page-header" style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '16px' }}>
+                <button onClick={handleBack} className="back-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', border: 'none', background: '#e0e0e0', borderRadius: '8px', cursor: 'pointer' }}>
+                    <FaArrowLeft /> Back
                 </button>
-                <h2 style={{ margin: 0, fontSize: '1.5rem', color: '#1a1a2e' }}>Genealogical Tree: {member.name}</h2>
+                <h2 style={{ margin: 0 }}>Family Tree: {member.name} {member.surname}</h2>
             </div>
 
-            <div className="tree-content-card" style={{ background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <div className="tree-visual-container" style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', padding: '20px' }}>
                 <FamilyTree member={member} allMembers={allMembers} />
             </div>
         </div>

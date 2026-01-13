@@ -17,6 +17,12 @@ def get_firestore_db():
     try:
         # Load settings
         app_settings = AppSettings.objects.first()
+        
+        # Check if Firebase is globally enabled
+        if app_settings and not app_settings.firebase_enabled:
+            # Silent return or log info - we don't want to error out, just normal "not connected" behavior
+            return None
+
         if not app_settings or not app_settings.firebase_config:
             logger.warning("Firebase settings not found")
             return None

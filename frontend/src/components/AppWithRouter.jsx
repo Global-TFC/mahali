@@ -10,9 +10,7 @@ import HouseDetailsPage from './HouseDetailsPage'
 import Members from './Members'
 import MemberDetails from './MemberDetails'
 import MemberDetailsPage from './MemberDetailsPage'
-import CollectionModal from './CollectionModal';
-import SubcollectionModal from './SubcollectionModal';
-import FamilyTreePage from './FamilyTreePage';
+import FamilyTreePage from './FamilyTreePage'
 import Collections from './Collections'
 import Subcollections from './Subcollections'
 import Obligations from './Obligations'
@@ -390,8 +388,7 @@ function AppWithRouter() {
               <Route path="/houses/add" element={<HouseForm />} />
               <Route path="/houses/edit/:id" element={<HouseForm />} />
               <Route path="/members/add" element={<MemberForm />} />
-              <Route path="/members/edit/:id" element={<MemberForm members={members} houses={houses} setMembers={setMembers} />} />
-              <Route path="/members/:memberId/tree" element={<FamilyTreePage />} />
+              <Route path="/members/edit/:id" element={<MemberForm />} />
               <Route path="/obligations/bulk-add" element={<BulkObligationPage />} />
               <Route path="/areas" element={
                 <Areas
@@ -439,6 +436,7 @@ function AppWithRouter() {
                   loadDataForTab={loadDataForTab}
                 />
               } />
+              <Route path="/members/:memberId/tree" element={<FamilyTreePage />} />
               <Route path="/member-request" element={<FirebaseDataImproved />} /> {/* Member Request route */}
               <Route path="/my-actions" element={<MyActions />} />
               <Route path="/collections" element={
