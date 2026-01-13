@@ -64,7 +64,7 @@ const FamilyTreePage = () => {
     }
 
     return (
-        <div className="family-tree-page-wrapper animate-in" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div className="family-tree-page-wrapper animate-in" style={{ padding: '20px', maxWidth: '95%', margin: '0 auto' }}>
             <div className="page-header" style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '16px' }}>
                 <button onClick={handleBack} className="back-btn" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', border: 'none', background: '#e0e0e0', borderRadius: '8px', cursor: 'pointer' }}>
                     <FaArrowLeft /> Back

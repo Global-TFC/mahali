@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaUser, FaMale, FaFemale, FaHeart, FaCrown } from 'react-icons/fa';
 import './FamilyTree.css';
 
 const FamilyTree = ({ member, allMembers = [] }) => {
@@ -53,24 +54,36 @@ const FamilyTree = ({ member, allMembers = [] }) => {
         if (targetId) navigate(`/members/${targetId}`);
     };
 
-    const getInitials = (name) => name ? name.charAt(0).toUpperCase() : '?';
-
     // Render a single node
-    const Node = ({ data, label, type = 'default', isMain = false }) => {
+    const Node = ({ data, label, type = 'default', isMain = false, icon = null }) => {
         if (!data) return (
-            <div className={`tree-node placeholder ${type}`}>
-                <span>{label}</span>
+            <div className={`tree-card placeholder ${type}`}>
+                <div className="card-content">
+                    <div className="avatar-placeholder">?</div>
+                    <span className="name">{label}</span>
+                </div>
             </div>
         );
 
+        const genderIcon = data.gender === 'female' ? <FaFemale /> : <FaMale />;
+
         return (
             <div
-                className={`tree-node ${type} ${isMain ? 'main-node' : ''}`}
+                className={`tree-card ${type} ${isMain ? 'main-highlight' : ''}`}
                 onClick={() => handleNavigate(data.member_id)}
                 title={data.name}
             >
-                <span className="node-label">{label || data.name}</span>
-                {/* Optional: Add avatars or more details if needed, for now sticking to the pill design */}
+                {isMain && <div className="crown-icon"><FaCrown /></div>}
+                <div className="card-content">
+                    <div className={`avatar ${data.gender || 'male'}`}>
+                        {icon || genderIcon}
+                    </div>
+                    <div className="info">
+                        <span className="name">{data.name}</span>
+                        {data.surname && <span className="surname">{data.surname}</span>}
+                        <span className="role-badge">{label}</span>
+                    </div>
+                </div>
             </div>
         );
     };
@@ -78,89 +91,95 @@ const FamilyTree = ({ member, allMembers = [] }) => {
     const { father, mother, spouse, children, siblings } = relationships;
 
     return (
-        <div className="family-tree-container animate-in">
-            <div className="tree-scroll-wrapper">
-                <div className="tree-layout">
+        <div className="family-tree-wrapper animate-fade-in">
+            <div className="tree-scroll-container">
+                <div className="tree-structure">
 
-                    {/* PARENTS COLUMN */}
-                    <div className="tree-column parents-column">
-                        <div className="node-group vertical">
-                            <Node data={father} label={father ? father.name : "Father"} type="parent" />
-                            <Node data={mother} label={mother ? mother.name : "Mother"} type="parent" />
+                    {/* Level 1: Parents */}
+                    <div className="level parents-level">
+                        <div className="node-wrapper">
+                            <Node data={father} label="Father" type="parent" />
+                        </div>
+                        <div className="connector-h-parents"></div>
+                        <div className="node-wrapper">
+                            <Node data={mother} label="Mother" type="parent" />
                         </div>
                     </div>
 
-                    {/* CONNECTORS (LEFT) */}
-                    <div className="tree-connector left-connector">
-                        <svg viewBox="0 0 100 200" preserveAspectRatio="none">
-                            {/* 
-                 Line from parents to center (for siblings)
-                 Line from parents to main member
-               */}
-                            <path d="M 0 50 C 50 50, 50 100, 100 100" className="connector-path" fill="none" />
-                            <path d="M 0 150 C 50 150, 50 100, 100 100" className="connector-path" fill="none" />
-                        </svg>
-                    </div>
+                    {/* Connector: Parents down to Ego/Siblings */}
+                    <div className="vertical-line-to-relatives"></div>
 
-                    {/* MIDDLE COLUMN (Siblings + Member/Spouse) */}
-                    <div className="tree-column middle-column">
+                    {/* Level 2: Ego + Siblings + Spouse */}
+                    <div className="level middle-level">
 
-                        {/* SIBLINGS (Top) */}
+                        {/* Siblings Group */}
                         {siblings.length > 0 && (
-                            <div className="siblings-wrapper">
-                                <div className="siblings-connector-line"></div>
-                                <div className="node-group vertical-start">
-                                    {siblings.map(sib => (
-                                        <Node key={sib.member_id} data={sib} label={sib.name} type="sibling" />
-                                    ))}
-                                </div>
+                            <div className="siblings-group">
+                                {siblings.map(sib => (
+                                    <div key={sib.member_id} className="node-wrapper sibling-node">
+                                        <div className="line-up"></div>
+                                        <Node data={sib} label="Sibling" type="sibling" />
+                                    </div>
+                                ))}
                             </div>
                         )}
 
-                        {/* MAIN COUPLE */}
-                        <div className="couple-wrapper">
-                            <Node data={member} label={member.name} type="main" isMain={true} />
+                        {/* Gap if siblings exist */}
+                        {siblings.length > 0 && <div className="spacer"></div>}
+
+                        {/* Ego & Spouse */}
+                        <div className="couple-group">
+                            <div className="node-wrapper ego-node">
+                                <div className="line-up-main"></div>
+                                <Node data={member} label="You" type="main" isMain={true} />
+                                {/* Connector down to children */}
+                                {children.length > 0 && <div className="line-down-main"></div>}
+                            </div>
+
                             {spouse && (
-                                <Node data={spouse} label={spouse.name} type="spouse" />
-                            )}
-
-                            {/* 
-                    NOTE: If there is a spouse, we visually connect them. 
-                    In the design image, they are stacked or side-by-side.
-                    Let's stack them slightly overlapped or connected.
-                 */}
-                        </div>
-
-                    </div>
-
-                    {/* CONNECTORS (RIGHT) */}
-                    <div className="tree-connector right-connector">
-                        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-                            <path d="M 0 50 L 100 50" className="connector-path" fill="none" />
-                        </svg>
-                    </div>
-
-                    {/* CHILDREN COLUMN */}
-                    <div className="tree-column children-column">
-                        <div className="node-group vertical">
-                            {children.length > 0 ? (
-                                children.map(child => (
-                                    <Node key={child.member_id} data={child} label={child.name} type="child" />
-                                ))
-                            ) : (
-                                <span className="no-children-label">No Children Records</span>
+                                <>
+                                    <div className="marriage-connector">
+                                        <FaHeart className="heart-icon" />
+                                        <div className="line-h"></div>
+                                    </div>
+                                    <div className="node-wrapper spouse-node">
+                                        <Node data={spouse} label="Spouse" type="spouse" />
+                                        {/* Spouse also connects to children effectively */}
+                                        {children.length > 0 && <div className="line-down-spouse"></div>}
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>
+
+                    {/* Level 3: Children */}
+                    {children.length > 0 && (
+                        <>
+                            {/* Horizontal bar connecting all children */}
+                            <div className="children-connector-bar"></div>
+
+                            <div className="level children-level">
+                                {children.map(child => (
+                                    <div key={child.member_id} className="node-wrapper child-node">
+                                        <div className="line-up-child"></div>
+                                        <Node data={child} label="Child" type="child" />
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    {children.length === 0 && <div className="no-children-msg">No Children Recorded</div>}
 
                 </div>
             </div>
 
-            <div className="tree-controls">
-                <span className="legend-item"><span className="dot parent"></span> Parents</span>
-                <span className="legend-item"><span className="dot main"></span> Active Member</span>
-                <span className="legend-item"><span className="dot sibling"></span> Siblings</span>
-                <span className="legend-item"><span className="dot child"></span> Children</span>
+            <div className="tree-legend">
+                <div className="legend-item"><span className="dot parent"></span> Parents</div>
+                <div className="legend-item"><span className="dot main"></span> Active</div>
+                <div className="legend-item"><span className="dot spouse"></span> Spouse</div>
+                <div className="legend-item"><span className="dot sibling"></span> Sibling</div>
+                <div className="legend-item"><span className="dot child"></span> Child</div>
             </div>
         </div>
     );
