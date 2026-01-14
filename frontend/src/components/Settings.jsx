@@ -5,6 +5,7 @@ import './Settings.css';
 
 const Settings = ({ exportData, importData, exportProgress, importProgress, disabled }) => {
   const [firebaseConfig, setFirebaseConfig] = useState('');
+  const [firebaseEnabled, setFirebaseEnabled] = useState(true);
   const [appSettings, setAppSettings] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -19,6 +20,7 @@ const Settings = ({ exportData, importData, exportProgress, importProgress, disa
         const settings = response.data[0];
         setAppSettings(settings);
         setTheme(settings.theme || 'light');
+        setFirebaseEnabled(settings.firebase_enabled !== undefined ? settings.firebase_enabled : true);
         if (settings.firebase_config) {
           setFirebaseConfig(settings.firebase_config);
         }
@@ -54,12 +56,14 @@ const Settings = ({ exportData, importData, exportProgress, importProgress, disa
 
       console.log('Sending settings update:', {
         ...appSettings,
-        firebase_config: firebaseConfig
+        firebase_config: firebaseConfig,
+        firebase_enabled: firebaseEnabled
       });
 
       const response = await settingsAPI.update(appSettings.id, {
         ...appSettings,
-        firebase_config: firebaseConfig
+        firebase_config: firebaseConfig,
+        firebase_enabled: firebaseEnabled
       });
 
       console.log('Settings update response:', response);
@@ -274,6 +278,32 @@ const Settings = ({ exportData, importData, exportProgress, importProgress, disa
             Firebase Configuration
           </h3>
           <p className="text-muted" style={{ marginBottom: '24px' }}>Bridge the application with external cloud services via Firebase.</p>
+
+          <div style={{ marginBottom: '30px', padding: '16px', background: 'var(--header-bg)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <strong style={{ display: 'block', marginBottom: '4px' }}>Sync Functionality</strong>
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{firebaseEnabled ? 'Enabled (Consumes Quota)' : 'Disabled (Offline Mode)'}</span>
+              </div>
+              <label className="switch" style={{ position: 'relative', display: 'inline-block', width: '50px', height: '26px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={firebaseEnabled} 
+                  onChange={(e) => setFirebaseEnabled(e.target.checked)}
+                  style={{ opacity: 0, width: 0, height: 0 }}
+                />
+                <span className="slider round" style={{ 
+                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0, 
+                    backgroundColor: firebaseEnabled ? 'var(--primary)' : '#ccc', 
+                    borderRadius: '34px', transition: '.4s' 
+                }}>
+                    <span style={{ 
+                        position: 'absolute', content: '""', height: '18px', width: '18px', left: '4px', bottom: '4px', 
+                        backgroundColor: 'white', borderRadius: '50%', transition: '.4s',
+                        transform: firebaseEnabled ? 'translateX(24px)' : 'translateX(0)' 
+                    }}></span>
+                </span>
+              </label>
+          </div>
 
           <div className="form-group">
             <label style={{ marginBottom: '12px', display: 'block' }}>Firebase Configuration Payload (JSON)</label>

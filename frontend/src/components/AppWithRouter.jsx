@@ -10,6 +10,7 @@ import HouseDetailsPage from './HouseDetailsPage'
 import Members from './Members'
 import MemberDetails from './MemberDetails'
 import MemberDetailsPage from './MemberDetailsPage'
+import FamilyTreePage from './FamilyTreePage'
 import Collections from './Collections'
 import Subcollections from './Subcollections'
 import Obligations from './Obligations'
@@ -435,6 +436,7 @@ function AppWithRouter() {
                   loadDataForTab={loadDataForTab}
                 />
               } />
+              <Route path="/members/:memberId/tree" element={<FamilyTreePage />} />
               <Route path="/member-request" element={<FirebaseDataImproved />} /> {/* Member Request route */}
               <Route path="/my-actions" element={<MyActions />} />
               <Route path="/collections" element={
